@@ -87,9 +87,23 @@ class EspnApi {
     return flatPlayers as EspnAthlete[];
   }
 
-  private async getFullPlayer(ref: { $ref: string }) {
-    const response = await fetchWithRetry(ref.$ref);
-    return response.json();
+  async getWeekEvents(season: number, week: number, seasonType: number = 2) {
+    const url = `${this.baseUrl}/seasons/${season}/types/${seasonType}/weeks/${week}/events?limit=50`;
+    const res = await fetchWithRetry(url);
+    const data = await res.json();
+    
+    // Resolve each event $ref
+    const eventPromises = data.items.map(async (ref: { $ref: string }) => {
+        const res = await fetchWithRetry(ref.$ref);
+        return res.json();
+    });
+    return Promise.all(eventPromises);
+  }
+
+  async getGameSummary(eventId: string) {
+    const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${eventId}`;
+    const res = await fetchWithRetry(url);
+    return res.json();
   }
 }
 

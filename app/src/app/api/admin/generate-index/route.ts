@@ -9,6 +9,7 @@ export interface PlayerIndexItem {
   name: string;
   pos: string;
   team: string; // Abbreviation
+  teamId: string;
 }
 
 const OFFENSIVE_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE', 'K', 'PK']);
@@ -33,7 +34,8 @@ export async function GET() {
         id: t.id, // Using Team ID as Player ID for D/ST
         name: `${t.name} D/ST`,
         pos: 'D/ST',
-        team: t.abbreviation
+        team: t.abbreviation,
+        teamId: t.id
       });
     });
     console.log(`Fetched ${teams.length} teams.`);
@@ -46,17 +48,15 @@ export async function GET() {
     // 3. Build & Filter Index
     const offensivePlayers: PlayerIndexItem[] = players
       .filter((p) => {
-        // Site API might return inactive players in the roster (e.g. Practice Squad/IR)
-        // We decide if we want them. User said "Jared Goff" was missing, 
-        // and Goff is definitely active, so we just need to ensure our filter isn't too tight.
         const pos = p.position?.abbreviation;
         return pos && OFFENSIVE_POSITIONS.has(pos);
       })
       .map((p: EspnAthlete) => {
         let teamAbbr = 'FA'; // Free Agent
+        let teamId = '0';
         if (p.team?.$ref) {
           const parts = p.team.$ref.split('/');
-          const teamId = parts[parts.length - 1].split('?')[0];
+          teamId = parts[parts.length - 1].split('?')[0];
           teamAbbr = teamMap.get(teamId) || 'UNK';
         }
 
@@ -65,6 +65,7 @@ export async function GET() {
           name: p.fullName,
           pos: p.position?.abbreviation || 'UNK',
           team: teamAbbr,
+          teamId: teamId
         };
       });
 

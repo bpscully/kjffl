@@ -1,20 +1,35 @@
 'use client';
 
-import { X } from 'lucide-react';
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RosterPlayer } from '@/types';
-import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { ChevronDown, ChevronUp, X } from 'lucide-react';
 
 interface PlayerCardProps {
   player: RosterPlayer;
+  score?: number;
+  scoreDetails?: { reason: string; points: number }[];
+  gameStatus?: string;
+  opponentAbbr?: string;
+  loading?: boolean;
   onRemove: (id: string) => void;
   onToggleStarter?: (id: string) => void;
 }
 
-export function PlayerCard({ player, onRemove, onToggleStarter }: PlayerCardProps) {
+export function PlayerCard({ 
+  player, 
+  score, 
+  scoreDetails, 
+  gameStatus, 
+  opponentAbbr, 
+  loading, 
+  onRemove, 
+  onToggleStarter 
+}: PlayerCardProps) {
   const [imgError, setImgError] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   
   const isDST = player.pos === 'D/ST';
   const headshotUrl = isDST 
@@ -23,8 +38,11 @@ export function PlayerCard({ player, onRemove, onToggleStarter }: PlayerCardProp
     
   const fallbackUrl = 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/0.png&w=350&h=254&cb=1';
 
+  const hasDetails = scoreDetails && scoreDetails.length > 0;
+  const isLive = gameStatus && !gameStatus.includes('Final') && !gameStatus.includes('Scheduled');
+
   return (
-    <Card className="w-full relative overflow-hidden group hover:shadow-md transition-shadow">
+    <Card className="w-full relative overflow-hidden group hover:shadow-md transition-all">
       <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
         <Button 
             variant="ghost" 
@@ -36,34 +54,89 @@ export function PlayerCard({ player, onRemove, onToggleStarter }: PlayerCardProp
         </Button>
       </div>
       
-      <CardContent className="p-3 flex items-center gap-3">
-        {/* Headshot / Logo */}
-        <div className={cn(
-            "relative h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0 overflow-hidden border",
-            isDST ? "bg-transparent border-none" : "bg-muted rounded-full"
-        )}>
-           <img 
-             src={imgError ? fallbackUrl : headshotUrl} 
-             alt={player.name} 
-             className={cn(
-                 "h-full w-full",
-                 isDST ? "object-contain" : "object-cover"
-             )}
-             onError={() => setImgError(true)}
-           />
+      <CardContent className="p-0">
+        <div className="p-3 flex items-center gap-3">
+            {/* Headshot / Logo */}
+            <div className={cn(
+                "relative h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0 overflow-hidden border",
+                isDST ? "bg-transparent border-none" : "bg-muted rounded-full"
+            )}>
+            <img 
+                src={imgError ? fallbackUrl : headshotUrl} 
+                alt={player.name} 
+                className={cn(
+                    "h-full w-full",
+                    isDST ? "object-contain" : "object-cover"
+                )}
+                onError={() => setImgError(true)}
+            />
+            {isLive && (
+                <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-background rounded-full animate-pulse" />
+            )}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-sm sm:text-base truncate leading-tight">{player.name}</h3>
+                <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-muted-foreground">{player.pos} • {player.team}</p>
+                    {opponentAbbr && (
+                        <span className="text-[10px] font-bold bg-muted px-1.5 py-0.5 rounded text-muted-foreground uppercase">
+                            vs {opponentAbbr}
+                        </span>
+                    )}
+                </div>
+                {gameStatus && (
+                    <p className={cn(
+                        "text-[10px] font-medium mt-1",
+                        isLive ? "text-green-600 font-bold" : "text-muted-foreground"
+                    )}>
+                        {gameStatus}
+                    </p>
+                )}
+            </div>
+
+            {/* Score */}
+            <div 
+                className={cn(
+                    "flex flex-col items-end cursor-pointer select-none min-w-[60px]",
+                    hasDetails && "hover:opacity-70"
+                )}
+                onClick={() => hasDetails && setExpanded(!expanded)}
+            >
+            {loading ? (
+                <div className="h-6 w-10 bg-muted animate-pulse rounded" />
+            ) : (
+                <>
+                    <div className="flex items-center gap-1">
+                        <span className={cn(
+                            "text-xl font-bold font-mono",
+                            score && score > 0 ? "text-primary" : "text-muted-foreground"
+                        )}>
+                            {score !== undefined ? score.toFixed(1) : '--'}
+                        </span>
+                        {hasDetails && (
+                            expanded ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                        )}
+                    </div>
+                    <span className="text-[10px] uppercase text-muted-foreground">Pts</span>
+                </>
+            )}
+            </div>
         </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-           <h3 className="font-bold text-sm sm:text-base truncate leading-tight">{player.name}</h3>
-           <p className="text-xs text-muted-foreground">{player.pos} • {player.team}</p>
-        </div>
-
-        {/* Score Placeholder */}
-        <div className="flex flex-col items-end">
-           <span className="text-xl font-bold font-mono">--</span>
-           <span className="text-[10px] uppercase text-muted-foreground">Pts</span>
-        </div>
+        {/* Details Expansion */}
+        {expanded && hasDetails && (
+            <div className="bg-muted/30 border-t p-3 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                <h4 className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider mb-2">Scoring Breakdown</h4>
+                {scoreDetails.map((detail, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground">{detail.reason}</span>
+                        <span className="font-semibold">+{detail.points.toFixed(1)}</span>
+                    </div>
+                ))}
+            </div>
+        )}
       </CardContent>
     </Card>
   );
