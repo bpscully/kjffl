@@ -137,14 +137,16 @@ export default function Home() {
             <div className="flex items-center gap-1 bg-secondary rounded-md p-1">
                 <button 
                     onClick={() => setWeek(Math.max(1, week - 1))}
-                    className="px-2 py-0.5 hover:bg-background rounded-sm transition-colors text-xs font-bold"
+                    disabled={week <= 1}
+                    className="px-2 py-0.5 hover:bg-background rounded-sm transition-colors text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                     &lt;
                 </button>
                 <span className="text-sm font-bold min-w-[60px] text-center">Week {week}</span>
                 <button 
-                    onClick={() => setWeek(week + 1)}
-                    className="px-2 py-0.5 hover:bg-background rounded-sm transition-colors text-xs font-bold"
+                    onClick={() => setWeek(Math.min(18, week + 1))}
+                    disabled={week >= 18}
+                    className="px-2 py-0.5 hover:bg-background rounded-sm transition-colors text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                     &gt;
                 </button>
