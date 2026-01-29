@@ -84,6 +84,9 @@ export default function Home() {
   const starters = roster.filter(p => p.isStarter).sort(sortPlayers);
   const bench = roster.filter(p => !p.isStarter).sort(sortPlayers);
 
+  const starterTotal = starters.reduce((sum, p) => sum + (scores[p.id]?.totalPoints || 0), 0);
+  const benchTotal = bench.reduce((sum, p) => sum + (scores[p.id]?.totalPoints || 0), 0);
+
   if (!isLoaded) return <div className="p-8 flex justify-center italic text-muted-foreground">Loading roster...</div>;
 
   return (
@@ -159,9 +162,12 @@ export default function Home() {
       <div className="space-y-10">
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-                Starting Lineup 
-            </h2>
+            <div className="flex items-center gap-3">
+                <h2 className="text-xl font-bold">Starting Lineup</h2>
+                <div className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold border border-primary/20">
+                    {starterTotal.toFixed(1)} <span className="text-[10px] uppercase opacity-70 ml-0.5">pts</span>
+                </div>
+            </div>
             <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-full">{starters.length}</span>
           </div>
           
@@ -191,9 +197,12 @@ export default function Home() {
         {bench.length > 0 && (
             <section>
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold flex items-center gap-2 text-muted-foreground">
-                    Bench
-                </h2>
+                <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-bold text-muted-foreground">Bench</h2>
+                    <div className="bg-muted text-muted-foreground px-2.5 py-0.5 rounded-full text-sm font-bold border border-border">
+                        {benchTotal.toFixed(1)} <span className="text-[10px] uppercase opacity-70 ml-0.5">pts</span>
+                    </div>
+                </div>
                 <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-full">{bench.length}</span>
             </div>
             <div className="grid gap-3 opacity-80 hover:opacity-100 transition-opacity">
