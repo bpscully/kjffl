@@ -250,6 +250,30 @@ export class ScoringEngine {
           this.addDistancePoints(yards, scoringRules.kicking, `FG (${yards} yds)`, details);
         }
       }
+
+      // 4. Two-Point Conversions (Always in parentheses)
+      // Format: "... (Baker Mayfield Pass to Chris Godwin Jr. for Two-Point Conversion)"
+      // Format: "... (Breece Hall Rush for Two-Point Conversion)"
+      const conversionMatch = text.match(/\(([^)]+for Two-Point Conversion)\)/i);
+      if (conversionMatch) {
+        const convText = conversionMatch[1];
+        
+        // Pass Conversion
+        if (convText.includes('Pass to')) {
+            const [passerPart, receiverPart] = convText.split(' Pass to ');
+            if (passerPart.includes(playerName)) {
+                details.push({ reason: '2-Pt Conversion (Pass)', points: (scoringRules as any).conversions.pass });
+            } else if (receiverPart.includes(playerName)) {
+                details.push({ reason: '2-Pt Conversion (Reception)', points: (scoringRules as any).conversions.receive });
+            }
+        } 
+        // Rush/Run Conversion
+        else if (convText.includes('Rush') || convText.includes('Run')) {
+            if (convText.includes(playerName)) {
+                details.push({ reason: '2-Pt Conversion (Rush)', points: (scoringRules as any).conversions.rush });
+            }
+        }
+      }
     }
   }
 

@@ -85,6 +85,11 @@ export const scoringRules = {
       dogW: 4,
     },
   },
+  conversions: {
+    pass: 1,
+    rush: 1,
+    receive: 1,
+  },
   misc: {
     superbowlMvp: 4,
     victory: 4,

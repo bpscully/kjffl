@@ -99,4 +99,64 @@ describe('ScoringEngine', () => {
     expect(result.totalPoints).toBe(3);
     expect(result.details).toContainEqual({ reason: 'Held Opponent < 10 Pts (Win)', points: 3 });
   });
+
+  it('should calculate 2-pt conversions correctly (Baker Mayfield)', () => {
+    const conversionSummary: EspnSummary = {
+        id: '2',
+        header: {
+          competitions: [{
+            competitors: [
+              { id: '27', score: '28', winner: true },
+              { id: '1', score: '14', winner: false }
+            ],
+            status: { type: { name: 'STATUS_FINAL', description: 'Final', detail: 'Final' } }
+          }]
+        },
+        scoringPlays: [
+          {
+            id: 'cp1',
+            type: { id: '67', text: 'Passing Touchdown', abbreviation: 'TD' },
+            text: 'Chris Godwin Jr. 3 Yd pass from Baker Mayfield (Baker Mayfield Pass to Chris Godwin Jr. for Two-Point Conversion)',
+            awayScore: 14, homeScore: 28,
+            team: { id: '27' }
+          }
+        ],
+        boxscore: {
+          players: [
+            {
+              team: { id: '27', abbreviation: 'TB' },
+              statistics: [
+                {
+                  name: 'passing',
+                  labels: ['C/ATT', 'YDS', 'TD'],
+                  athletes: [{
+                    athlete: { id: '201', displayName: 'Baker Mayfield' },
+                    stats: ['20/30', '250', '1']
+                  }]
+                },
+                {
+                  name: 'receiving',
+                  labels: ['REC', 'YDS', 'TD'],
+                  athletes: [{
+                    athlete: { id: '202', displayName: 'Chris Godwin Jr.' },
+                    stats: ['5', '60', '1']
+                  }]
+                }
+              ]
+            }
+          ]
+        }
+    };
+
+    const bakerResult = ScoringEngine.calculatePlayerScore('201', conversionSummary);
+    const godwinResult = ScoringEngine.calculatePlayerScore('202', conversionSummary);
+
+    // Baker: Passing TD (3 yds) -> 2 pts, 2-pt Conv -> 1 pt. Total = 3
+    expect(bakerResult.details).toContainEqual({ reason: '2-Pt Conversion (Pass)', points: 1 });
+    expect(bakerResult.totalPoints).toBe(3);
+
+    // Godwin: Receiving TD (3 yds) -> 2 pts, 2-pt Conv -> 1 pt. Total = 3
+    expect(godwinResult.details).toContainEqual({ reason: '2-Pt Conversion (Reception)', points: 1 });
+    expect(godwinResult.totalPoints).toBe(3);
+  });
 });
