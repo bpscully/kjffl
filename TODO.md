@@ -17,11 +17,17 @@
 - [x] Build the "Starting Lineup" vs "Bench" UI
 
 ## Phase 4: The Scoring Engine (Backend Core)
-- [ ] Implement `lib/scoring_engine.ts`: A pure function that takes `ESPNBoxscore` -> `FantasyPoints`
-- [ ] Write robust unit tests for `scoring_rules.ts` (Edge cases are critical)
-- [ ] Create the `/api/scores` endpoint to serve calculated scores for a list of Player IDs
+- [x] Implement `lib/scoring_engine.ts`: A pure function that takes `ESPNBoxscore` -> `FantasyPoints`
+- [x] Write robust unit tests for `scoring_rules.ts` (Edge cases are critical)
+- [x] Create the `/api/scores` endpoint to serve calculated scores for a list of Player IDs
 
 ## Phase 5: Integration & Live View
-- [ ] Wire up the Roster view to fetch scores from `/api/scores`
-- [ ] Implement Season/Week selectors
-- [ ] Add "Live" indicators (Game Clock, Opponent)
+- [x] Wire up the Roster view to fetch scores from `/api/scores`
+- [x] Implement Season/Week selectors
+- [x] Add "Live" indicators (Game Clock, Opponent)
+- [x] **New:** Added roster point totals and expandable breakdown.
+
+## Phase 6: Deployment & Handover (Next)
+- [ ] Push code to a new GitHub repository
+- [ ] Deploy to Vercel
+- [ ] Configure automatic player index refreshes (Cron)
