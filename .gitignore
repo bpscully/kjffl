@@ -1,0 +1,6 @@
+# Local development files
+*.tmp
+
+# Common ignores
+node_modules/
+.DS_Store

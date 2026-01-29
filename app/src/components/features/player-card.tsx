@@ -40,9 +40,13 @@ export function PlayerCard({
 
   const hasDetails = scoreDetails && scoreDetails.length > 0;
   const isLive = gameStatus && !gameStatus.includes('Final') && !gameStatus.includes('Scheduled') && !gameStatus.includes('N/A');
+  const isBench = !player.isStarter;
 
   return (
-    <Card className="w-full relative overflow-hidden group hover:shadow-md transition-all">
+    <Card className={cn(
+        "w-full relative overflow-hidden group hover:shadow-md transition-all",
+        isBench ? "bg-muted/40 border-dashed" : "bg-card"
+    )}>
       <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
         <Button 
             variant="secondary" 
@@ -73,15 +77,17 @@ export function PlayerCard({
         <div className="p-3 flex items-center gap-3">
             {/* Headshot / Logo */}
             <div className={cn(
-                "relative h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0 overflow-hidden border",
-                isDST ? "bg-transparent border-none" : "bg-muted rounded-full"
+                "relative h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0 overflow-hidden border transition-all",
+                isDST ? "bg-transparent border-none" : "bg-muted rounded-full",
+                isBench && !isDST && "grayscale opacity-70"
             )}>
             <img 
                 src={imgError ? fallbackUrl : headshotUrl} 
                 alt={player.name} 
                 className={cn(
                     "h-full w-full",
-                    isDST ? "object-contain" : "object-cover"
+                    isDST ? "object-contain" : "object-cover",
+                    isBench && isDST && "grayscale opacity-50"
                 )}
                 onError={() => setImgError(true)}
             />
@@ -92,11 +98,24 @@ export function PlayerCard({
 
             {/* Info */}
             <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-sm sm:text-base truncate leading-tight">{player.name}</h3>
+                <div className="flex items-center gap-2">
+                    <h3 className={cn(
+                        "font-bold text-sm sm:text-base truncate leading-tight",
+                        isBench && "text-muted-foreground/80"
+                    )}>{player.name}</h3>
+                    {isBench && (
+                        <span className="text-[9px] font-black bg-muted-foreground/20 text-muted-foreground px-1 rounded-sm uppercase tracking-tighter">
+                            Bench
+                        </span>
+                    )}
+                </div>
                 <div className="flex items-center gap-2 mt-0.5">
                     <p className="text-xs text-muted-foreground">{player.pos} • {player.team}</p>
                     {opponentAbbr && (
-                        <span className="text-[10px] font-bold bg-muted px-1.5 py-0.5 rounded text-muted-foreground uppercase">
+                        <span className={cn(
+                            "text-[10px] font-bold px-1.5 py-0.5 rounded uppercase",
+                            isBench ? "bg-muted/60 text-muted-foreground/60" : "bg-muted text-muted-foreground"
+                        )}>
                             vs {opponentAbbr}
                         </span>
                     )}
@@ -104,7 +123,8 @@ export function PlayerCard({
                 {gameStatus && (
                     <p className={cn(
                         "text-[10px] font-medium mt-1",
-                        isLive ? "text-green-600 font-bold" : "text-muted-foreground"
+                        isLive ? "text-green-600 font-bold" : "text-muted-foreground",
+                        isBench && !isLive && "opacity-60"
                     )}>
                         {gameStatus}
                     </p>
@@ -126,7 +146,7 @@ export function PlayerCard({
                     <div className="flex items-center gap-1">
                         <span className={cn(
                             "text-xl font-bold font-mono",
-                            score && score > 0 ? "text-primary" : "text-muted-foreground"
+                            score && score > 0 ? (isBench ? "text-muted-foreground" : "text-primary") : "text-muted-foreground"
                         )}>
                             {score !== undefined ? score.toFixed(2) : '--'}
                         </span>
