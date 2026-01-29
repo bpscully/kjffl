@@ -47,29 +47,29 @@ export function PlayerCard({
         "w-full relative overflow-hidden group hover:shadow-md transition-all",
         isBench ? "bg-muted/40 border-dashed" : "bg-card"
     )}>
-      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
+      <div className="absolute top-1 right-1 flex gap-1 z-10 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
         <Button 
             variant="secondary" 
             size="icon" 
-            className="h-6 w-6" 
+            className="h-7 w-7 sm:h-6 sm:w-6 shadow-sm border" 
             title={player.isStarter ? "Move to Bench" : "Move to Starters"}
             onClick={(e) => {
                 e.stopPropagation();
                 onToggleStarter(player.id);
             }}
         >
-            {player.isStarter ? <ArrowDownWideNarrow className="h-3 w-3" /> : <ArrowUpWideNarrow className="h-3 w-3" />}
+            {player.isStarter ? <ArrowDownWideNarrow className="h-3.5 w-3.5 sm:h-3 sm:w-3" /> : <ArrowUpWideNarrow className="h-3.5 w-3.5 sm:h-3 sm:w-3" />}
         </Button>
         <Button 
-            variant="ghost" 
+            variant="secondary" 
             size="icon" 
-            className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10" 
+            className="h-7 w-7 sm:h-6 sm:w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shadow-sm border" 
             onClick={(e) => {
                 e.stopPropagation();
                 onRemove(player.id);
             }}
         >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 sm:h-3.5 sm:h-3.5" />
         </Button>
       </div>
       
