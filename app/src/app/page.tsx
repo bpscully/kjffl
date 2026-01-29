@@ -165,7 +165,7 @@ export default function Home() {
             <div className="flex items-center gap-3">
                 <h2 className="text-xl font-bold">Starting Lineup</h2>
                 <div className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold border border-primary/20">
-                    {starterTotal.toFixed(1)} <span className="text-[10px] uppercase opacity-70 ml-0.5">pts</span>
+                    {starterTotal.toFixed(2)} <span className="text-[10px] uppercase opacity-70 ml-0.5">pts</span>
                 </div>
             </div>
             <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-full">{starters.length}</span>
@@ -200,7 +200,7 @@ export default function Home() {
                 <div className="flex items-center gap-3">
                     <h2 className="text-xl font-bold text-muted-foreground">Bench</h2>
                     <div className="bg-muted text-muted-foreground px-2.5 py-0.5 rounded-full text-sm font-bold border border-border">
-                        {benchTotal.toFixed(1)} <span className="text-[10px] uppercase opacity-70 ml-0.5">pts</span>
+                        {benchTotal.toFixed(2)} <span className="text-[10px] uppercase opacity-70 ml-0.5">pts</span>
                     </div>
                 </div>
                 <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-full">{bench.length}</span>

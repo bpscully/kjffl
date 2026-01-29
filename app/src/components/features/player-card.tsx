@@ -128,7 +128,7 @@ export function PlayerCard({
                             "text-xl font-bold font-mono",
                             score && score > 0 ? "text-primary" : "text-muted-foreground"
                         )}>
-                            {score !== undefined ? score.toFixed(1) : '--'}
+                            {score !== undefined ? score.toFixed(2) : '--'}
                         </span>
                         {hasDetails && (
                             expanded ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />
@@ -147,7 +147,7 @@ export function PlayerCard({
                 {scoreDetails.map((detail, idx) => (
                     <div key={idx} className="flex justify-between items-center text-xs">
                         <span className="text-muted-foreground">{detail.reason}</span>
-                        <span className="font-semibold">+{detail.points.toFixed(1)}</span>
+                        <span className="font-semibold">+{detail.points.toFixed(2)}</span>
                     </div>
                 ))}
             </div>
