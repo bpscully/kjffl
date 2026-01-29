@@ -55,5 +55,22 @@ The main application code is located in the `app/` directory.
     *   Use modern development practices, good abstractions, and concepts like DRY (Don't repeat yourself). 
     *   We will work feature by feature together. I would like to review the code before it is commited. 
     *   After a feature is implemented please suggest thorough unit tests. 
-    *   If at any point instructions are unclear please ask. Do not make assumptions. 
+    *   If at any point instructions are unclear please ask. Do not make assumptions.
+
+## Architecture Strategy
+
+### 1. Frontend (Next.js App Router)
+*   **State:** `localStorage` for the user's Roster (list of Player IDs).
+*   **Data Fetching:** Client-side fetching (via `SWR` or `React Query`) for live scores.
+*   **UI:** Shadcn/ui + Tailwind for a clean, ESPN-inspired aesthetic.
+
+### 2. Backend (Next.js API Routes)
+*   **Role:** Acts as a **BFF (Backend for Frontend)**. It abstracts the messy ESPN API calls.
+*   **Player Index:** A lightweight `players-index.json` (ID, Name, Position, Team) generated periodically to support efficient search without hitting the external API repeatedly.
+
+### 3. The Scoring Engine
+*   A dedicated module (`scoring_engine.ts`) that takes raw ESPN Boxscore data and applies the rules from `scoring_rules.ts`.
+
+## Implementation Plan
+A detailed phased implementation plan is maintained in [TODO.md](./TODO.md). Please refer to this file for the current status and next steps.
 
