@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Player, RosterPlayer } from '@/types';
+import playerIndex from '@/data/players-index.json';
 
 const STORAGE_KEY = 'kjffl-roster';
 
@@ -53,7 +54,7 @@ export function useRoster() {
     const newPlayer: RosterPlayer = {
       ...player,
       addedAt: Date.now(),
-      isStarter: roster.length < 9, // Simple default logic
+      isStarter: true,
     };
     setRoster((prev) => [...prev, newPlayer]);
   };

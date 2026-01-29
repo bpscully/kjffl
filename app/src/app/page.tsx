@@ -9,7 +9,7 @@ import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Home() {
-  const { roster, addPlayer, removePlayer, isLoaded } = useRoster();
+  const { roster, addPlayer, removePlayer, toggleStarter, isLoaded } = useRoster();
   const [season, setSeason] = useState(2025);
   const [week, setWeek] = useState(1);
   const [seasonType, setSeasonType] = useState(2); // 2 = Regular, 3 = Post
@@ -65,8 +65,24 @@ export default function Home() {
     }
   };
 
-  const starters = roster.filter(p => p.isStarter);
-  const bench = roster.filter(p => !p.isStarter);
+  const positionOrder: Record<string, number> = {
+    'QB': 1,
+    'RB': 2,
+    'WR': 3,
+    'TE': 4,
+    'K': 5,
+    'PK': 5,
+    'D/ST': 6
+  };
+
+  const sortPlayers = (a: any, b: any) => {
+    const orderA = positionOrder[a.pos] || 99;
+    const orderB = positionOrder[b.pos] || 99;
+    return orderA - orderB;
+  };
+
+  const starters = roster.filter(p => p.isStarter).sort(sortPlayers);
+  const bench = roster.filter(p => !p.isStarter).sort(sortPlayers);
 
   if (!isLoaded) return <div className="p-8 flex justify-center italic text-muted-foreground">Loading roster...</div>;
 
@@ -146,7 +162,7 @@ export default function Home() {
             <h2 className="text-xl font-bold flex items-center gap-2">
                 Starting Lineup 
             </h2>
-            <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-full">{starters.length} / 9</span>
+            <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-full">{starters.length}</span>
           </div>
           
           {starters.length === 0 ? (
@@ -160,6 +176,7 @@ export default function Home() {
                     key={player.id} 
                     player={player} 
                     onRemove={removePlayer} 
+                    onToggleStarter={toggleStarter}
                     score={scores[player.id]?.totalPoints}
                     scoreDetails={scores[player.id]?.details}
                     gameStatus={scores[player.id]?.gameStatus}
@@ -185,6 +202,7 @@ export default function Home() {
                     key={player.id} 
                     player={player} 
                     onRemove={removePlayer} 
+                    onToggleStarter={toggleStarter}
                     score={scores[player.id]?.totalPoints}
                     scoreDetails={scores[player.id]?.details}
                     gameStatus={scores[player.id]?.gameStatus}

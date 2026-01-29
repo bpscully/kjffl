@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RosterPlayer } from '@/types';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, ArrowDownWideNarrow, ArrowUpWideNarrow } from 'lucide-react';
 
 interface PlayerCardProps {
   player: RosterPlayer;
@@ -15,7 +15,7 @@ interface PlayerCardProps {
   opponentAbbr?: string;
   loading?: boolean;
   onRemove: (id: string) => void;
-  onToggleStarter?: (id: string) => void;
+  onToggleStarter: (id: string) => void;
 }
 
 export function PlayerCard({ 
@@ -39,16 +39,31 @@ export function PlayerCard({
   const fallbackUrl = 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/0.png&w=350&h=254&cb=1';
 
   const hasDetails = scoreDetails && scoreDetails.length > 0;
-  const isLive = gameStatus && !gameStatus.includes('Final') && !gameStatus.includes('Scheduled');
+  const isLive = gameStatus && !gameStatus.includes('Final') && !gameStatus.includes('Scheduled') && !gameStatus.includes('N/A');
 
   return (
     <Card className="w-full relative overflow-hidden group hover:shadow-md transition-all">
-      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
+        <Button 
+            variant="secondary" 
+            size="icon" 
+            className="h-6 w-6" 
+            title={player.isStarter ? "Move to Bench" : "Move to Starters"}
+            onClick={(e) => {
+                e.stopPropagation();
+                onToggleStarter(player.id);
+            }}
+        >
+            {player.isStarter ? <ArrowDownWideNarrow className="h-3 w-3" /> : <ArrowUpWideNarrow className="h-3 w-3" />}
+        </Button>
         <Button 
             variant="ghost" 
             size="icon" 
             className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10" 
-            onClick={() => onRemove(player.id)}
+            onClick={(e) => {
+                e.stopPropagation();
+                onRemove(player.id);
+            }}
         >
             <X className="h-4 w-4" />
         </Button>
