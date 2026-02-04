@@ -29,6 +29,6 @@
 
 ## Phase 6: Deployment & Handover (Next)
 - [x] **Refinement:** Switched to Next.js ISR for Player Index (No DB, Auto-Updates).
-- [ ] Push code to a new GitHub repository
-- [ ] Deploy to Vercel
+- [x] Push code to a new GitHub repository
+- [x] Deploy to Vercel
 - [x] Configure automatic player index refreshes (Handled via ISR)
