@@ -6,6 +6,5 @@ node_modules/
 .DS_Store
 
 # User requested ignores
-GEMINI.md
 .env*
 
