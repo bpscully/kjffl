@@ -28,6 +28,7 @@
 - [x] **New:** Added roster point totals and expandable breakdown.
 
 ## Phase 6: Deployment & Handover (Next)
+- [x] **Refinement:** Switched to Next.js ISR for Player Index (No DB, Auto-Updates).
 - [ ] Push code to a new GitHub repository
 - [ ] Deploy to Vercel
-- [ ] Configure automatic player index refreshes (Cron)
+- [x] Configure automatic player index refreshes (Handled via ISR)
