@@ -12,13 +12,15 @@ KJ's FFL Scores is a web application for tracking fantasy football scores. It al
 *   **UI Components**: Shadcn/ui
 *   **Theme**: Light and Dark mode with a theme switcher.
 *   **Backend**: Next.js API routes to fetch data from a public-facing ESPN API. Specific API details will be documented in `espn_api_notes.md`.
-*   **Data Persistence**: The user's roster will be stored in the browser's `localStorage`.
+*   **Data Persistence**: 
+    *   **User Roster**: Stored in the browser's `localStorage`.
+    *   **Player Database**: Utilizes **Next.js ISR (Incremental Static Regeneration)**. The player list is fetched from ESPN, cached server-side (24h), and filtered on demand. No database or local file is required.
 
 ## Key Features & Requirements
 
 1.  **Player Management**:
     *   Fetches a complete list of active NFL players, including defensive teams (DST).
-    *   Caches the player list locally (`players-cache.json`) to improve performance, with periodic refreshes.
+    *   **Cached Index Strategy**: The player list is maintained via Next.js `unstable_cache` with a 24-hour revalidation period, ensuring fast searches and automatic daily updates.
     *   Users can search for any player to view their score.
     *   Users can add/remove players to a personal roster that persists across sessions.
 
@@ -66,7 +68,10 @@ The main application code is located in the `app/` directory.
 
 ### 2. Backend (Next.js API Routes)
 *   **Role:** Acts as a **BFF (Backend for Frontend)**. It abstracts the messy ESPN API calls.
-*   **Player Index:** A lightweight `players-index.json` (ID, Name, Position, Team) generated periodically to support efficient search without hitting the external API repeatedly.
+*   **Player Index:** Managed via a `PlayerService` using Next.js caching.
+    *   **Generation:** Fetched from ESPN and cached for 24 hours (`unstable_cache`).
+    *   **Access:** Accessed via `/api/players` which serves filtered results from the cache.
+    *   **Benefit:** Zero manual maintenance, automatic daily updates, no persistent storage required.
 
 ### 3. The Scoring Engine
 *   A dedicated module (`scoring_engine.ts`) that takes raw ESPN Boxscore data and applies the rules from `scoring_rules.ts`.
