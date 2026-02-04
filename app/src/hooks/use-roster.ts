@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Player, RosterPlayer } from '@/types';
-import playerIndex from '@/data/players-index.json';
 
 const STORAGE_KEY = 'kjffl-roster';
 
@@ -14,25 +13,7 @@ export function useRoster() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
-        let loadedRoster: RosterPlayer[] = JSON.parse(stored);
-        
-        // Data Migration: Ensure all players have teamId
-        let migrationCount = 0;
-        loadedRoster = loadedRoster.map(p => {
-            if (!p.teamId) {
-                const fromIndex = (playerIndex as any[]).find(i => i.id === p.id);
-                if (fromIndex?.teamId) {
-                    migrationCount++;
-                    return { ...p, teamId: fromIndex.teamId };
-                }
-            }
-            return p;
-        });
-        
-        if (migrationCount > 0) {
-            console.log(`Migrated ${migrationCount} players to include teamId.`);
-        }
-        
+        const loadedRoster: RosterPlayer[] = JSON.parse(stored);
         setRoster(loadedRoster);
       } catch (e) {
         console.error('Failed to parse roster from local storage', e);

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +17,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import playerIndex from '@/data/players-index.json';
 import { Player } from '@/types';
 
 interface PlayerSearchProps {
@@ -27,14 +26,32 @@ interface PlayerSearchProps {
 export function PlayerSearch({ onSelectPlayer }: PlayerSearchProps) {
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState("");
+  const [results, setResults] = React.useState<Player[]>([]);
+  const [loading, setLoading] = React.useState(false);
 
-  // Filter players based on search value
-  const filteredPlayers = React.useMemo(() => {
-     if (!value || value.length < 3) return [];
-     const lower = value.toLowerCase();
-     return (playerIndex as Player[])
-       .filter(p => p.name.toLowerCase().includes(lower))
-       .slice(0, 10);
+  React.useEffect(() => {
+    if (!value || value.length < 3) {
+      setResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/players?q=${encodeURIComponent(value)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setResults(data.results || []);
+        }
+      } catch (error) {
+        console.error("Search failed", error);
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
   }, [value]);
 
   return (
@@ -59,12 +76,13 @@ export function PlayerSearch({ onSelectPlayer }: PlayerSearchProps) {
           />
           <CommandList>
             {value.length < 3 && <div className="py-6 text-center text-sm text-muted-foreground">Type 3+ characters...</div>}
-            {value.length >= 3 && filteredPlayers.length === 0 && (
+            {loading && <div className="py-6 flex justify-center"><Loader2 className="h-4 w-4 animate-spin" /></div>}
+            {!loading && value.length >= 3 && results.length === 0 && (
               <CommandEmpty>No player found.</CommandEmpty>
             )}
-            {value.length >= 3 && filteredPlayers.length > 0 && (
+            {!loading && value.length >= 3 && results.length > 0 && (
                 <CommandGroup>
-                {filteredPlayers.map((player) => (
+                {results.map((player) => (
                     <CommandItem
                     key={player.id}
                     value={player.name}
@@ -72,6 +90,7 @@ export function PlayerSearch({ onSelectPlayer }: PlayerSearchProps) {
                         onSelectPlayer(player);
                         setOpen(false);
                         setValue(""); // Reset search after select
+                        setResults([]);
                     }}
                     >
                     <Check
