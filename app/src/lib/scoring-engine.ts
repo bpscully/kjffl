@@ -183,6 +183,9 @@ export class ScoringEngine {
   }
 
   private static addBoxscorePoints(playerId: string, summary: EspnSummary, details: ScoringDetail[]) {
+    let rushingYards = 0;
+    let receivingYards = 0;
+
     // Find the player in the boxscore
     for (const teamData of summary.boxscore.players) {
       for (const group of teamData.statistics) {
@@ -193,12 +196,14 @@ export class ScoringEngine {
 
         if (group.name === 'rushing') {
           const yds = parseInt(statMap['YDS'] || '0');
+          rushingYards = yds;
           this.addRangeBonus(yds, scoringRules.rushingGameTotal, 'Rushing Total', details);
         } else if (group.name === 'passing') {
           const yds = parseInt(statMap['YDS'] || '0');
           this.addRangeBonus(yds, scoringRules.passingGameTotal, 'Passing Total', details);
         } else if (group.name === 'receiving') {
           const yds = parseInt(statMap['YDS'] || '0');
+          receivingYards = yds;
           this.addRangeBonus(yds, scoringRules.receivingGameTotal, 'Receiving Total', details);
         } else if (group.name === 'kicking') {
           // PATs are usually in the boxscore as "XP" or similar
@@ -209,6 +214,27 @@ export class ScoringEngine {
             details.push({ reason: `${made} PAT(s)`, points: made * scoringRules.kicking.pat });
           }
         }
+      }
+    }
+
+    this.addFlexBonusPoints(rushingYards, receivingYards, details);
+  }
+
+  private static addFlexBonusPoints(rushingYards: number, receivingYards: number, details: ScoringDetail[]) {
+    const combinedYards = rushingYards + receivingYards;
+
+    for (let i = scoringRules.flexBonus.length - 1; i >= 0; i--) {
+      const tier = scoringRules.flexBonus[i];
+      if (
+        combinedYards >= tier.combinedYards &&
+        rushingYards >= tier.minimumRushingYards &&
+        receivingYards >= tier.minimumReceivingYards
+      ) {
+        details.push({
+          reason: `Flex Bonus: ${combinedYards} combined yds (${rushingYards} rush, ${receivingYards} receiving)`,
+          points: tier.points,
+        });
+        break;
       }
     }
   }

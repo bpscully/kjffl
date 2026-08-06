@@ -64,11 +64,11 @@ export const scoringRules = {
     punt: 3.5,
     kickoff: 4,
   },
-  flexBonus: {
-    '100': 1, // 30 min both
-    '150': 2, // 40 min both
-    '200': 3, // 50 min both
-  },
+  flexBonus: [
+    { combinedYards: 100, minimumRushingYards: 30, minimumReceivingYards: 30, points: 1 },
+    { combinedYards: 150, minimumRushingYards: 40, minimumReceivingYards: 40, points: 2 },
+    { combinedYards: 200, minimumRushingYards: 50, minimumReceivingYards: 50, points: 3 },
+  ],
   upsetSpecial: {
     beatSpread: 2,
     dogVictory: 4,

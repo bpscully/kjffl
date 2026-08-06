@@ -92,6 +92,63 @@ describe('ScoringEngine', () => {
     expect(result.details).toContainEqual({ reason: 'Receiving TD (25 yds)', points: 3 });
   });
 
+  it('should apply Puka Nacua\'s flex bonus from 2025 Week 2', () => {
+    const pukaWeekTwoSummary: EspnSummary = {
+      id: '401772724',
+      header: {
+        competitions: [{
+          competitors: [
+            { id: '14', score: '33', winner: true },
+            { id: '10', score: '19', winner: false },
+          ],
+          status: {
+            type: { name: 'STATUS_FINAL', description: 'Final', detail: 'Final' },
+          },
+        }],
+      },
+      scoringPlays: [{
+        id: 'puka-rush-td',
+        type: { id: '68', text: 'Rushing Touchdown', abbreviation: 'TD' },
+        text: 'Puka Nacua 45 Yd Rush (Joshua Karty Kick)',
+        awayScore: 0,
+        homeScore: 7,
+        team: { id: '14' },
+      }],
+      boxscore: {
+        players: [{
+          team: { id: '14', abbreviation: 'LAR' },
+          statistics: [
+            {
+              name: 'rushing',
+              labels: ['CAR', 'YDS', 'AVG', 'TD', 'LONG'],
+              athletes: [{
+                athlete: { id: '4426515', displayName: 'Puka Nacua' },
+                stats: ['1', '45', '45.0', '1', '45'],
+              }],
+            },
+            {
+              name: 'receiving',
+              labels: ['REC', 'YDS', 'AVG', 'TD', 'LONG', 'TGTS'],
+              athletes: [{
+                athlete: { id: '4426515', displayName: 'Puka Nacua' },
+                stats: ['8', '91', '11.4', '0', '24', '9'],
+              }],
+            },
+          ],
+        }],
+      },
+    };
+
+    const result = ScoringEngine.calculatePlayerScore('4426515', pukaWeekTwoSummary);
+
+    expect(result.totalPoints).toBe(6);
+    expect(result.details).toContainEqual({ reason: 'Rushing TD (45 yds)', points: 5 });
+    expect(result.details).toContainEqual({
+      reason: 'Flex Bonus: 136 combined yds (45 rush, 91 receiving)',
+      points: 1,
+    });
+  });
+
   it('should calculate D/ST score correctly (KC)', () => {
     const result = ScoringEngine.calculatePlayerScore('12', mockSummary, 'D/ST');
     
