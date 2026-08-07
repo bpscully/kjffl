@@ -77,11 +77,68 @@ export interface PlayerScoreResult {
   opponentAbbr: string; // e.g. "KC"
 }
 
+export interface UpsetSpecialInput {
+  summary: EspnSummary;
+  pickedTeamId: string;
+  favoriteTeamId: string;
+  spread: number;
+}
+
+export interface UpsetSpecialScoreResult {
+  pickedTeamId: string;
+  totalPoints: number;
+  details: ScoringDetail[];
+}
+
 /**
  * SCORING ENGINE
  */
 
 export class ScoringEngine {
+  static calculateUpsetSpecialScore(input: UpsetSpecialInput): UpsetSpecialScoreResult {
+    const details: ScoringDetail[] = [];
+    const competition = input.summary.header.competitions[0];
+    const pickedTeam = competition.competitors.find(c => c.id === input.pickedTeamId);
+    const favoriteTeam = competition.competitors.find(c => c.id === input.favoriteTeamId);
+    const opponent = competition.competitors.find(c => c.id !== input.pickedTeamId);
+
+    if (!pickedTeam || !favoriteTeam || !opponent || input.pickedTeamId === input.favoriteTeamId) {
+      return {
+        pickedTeamId: input.pickedTeamId,
+        totalPoints: 0,
+        details,
+      };
+    }
+
+    const pickedScore = parseInt(pickedTeam.score || '0');
+    const opponentScore = parseInt(opponent.score || '0');
+    const spread = Math.abs(input.spread);
+    const covered = pickedScore + spread > opponentScore;
+
+    if (!covered) {
+      return {
+        pickedTeamId: input.pickedTeamId,
+        totalPoints: 0,
+        details,
+      };
+    }
+
+    if (pickedTeam.winner && spread >= 10) {
+      details.push({ reason: `10+ Point Underdog Win (+${spread})`, points: scoringRules.upsetSpecial.plus10DogW });
+    } else if (pickedTeam.winner) {
+      details.push({ reason: `Underdog Win (+${spread})`, points: scoringRules.upsetSpecial.dogVictory });
+    } else {
+      details.push({ reason: `Underdog Covered (+${spread})`, points: scoringRules.upsetSpecial.beatSpread });
+    }
+
+    const totalPoints = details.reduce((sum, detail) => sum + detail.points, 0);
+
+    return {
+      pickedTeamId: input.pickedTeamId,
+      totalPoints,
+      details,
+    };
+  }
   
   /**
    * Main entry point for calculating a single player's score from a game summary.

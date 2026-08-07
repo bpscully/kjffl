@@ -2,6 +2,28 @@ import { describe, it, expect } from 'vitest';
 import { ScoringEngine, EspnSummary } from './scoring-engine';
 
 describe('ScoringEngine', () => {
+  const makeGameSummary = (
+    id: string,
+    competitors: EspnSummary['header']['competitions'][number]['competitors'],
+  ): EspnSummary => ({
+    id,
+    header: {
+      competitions: [{
+        competitors,
+        status: {
+          type: { name: 'STATUS_FINAL', description: 'Final', detail: 'Final' },
+        },
+      }],
+    },
+    scoringPlays: [],
+    boxscore: {
+      players: competitors.map(team => ({
+        team: { id: team.id, abbreviation: team.id },
+        statistics: [],
+      })),
+    },
+  });
+
   const mockSummary: EspnSummary = {
     id: '1',
     header: {
@@ -298,5 +320,73 @@ describe('ScoringEngine', () => {
     // Godwin: Receiving TD (3 yds) -> 2 pts, 2-pt Conv -> 1 pt. Total = 3
     expect(godwinResult.details).toContainEqual({ reason: '2-Pt Conversion (Reception)', points: 1 });
     expect(godwinResult.totalPoints).toBe(3);
+  });
+
+  it('should calculate upset special points for an underdog that covers without winning', () => {
+    const coltsChiefsSummary = makeGameSummary('401772779', [
+      { id: '12', score: '23', winner: true },
+      { id: '11', score: '20', winner: false },
+    ]);
+
+    const result = ScoringEngine.calculateUpsetSpecialScore({
+      summary: coltsChiefsSummary,
+      pickedTeamId: '11',
+      favoriteTeamId: '12',
+      spread: 3.5,
+    });
+
+    expect(result.totalPoints).toBe(2);
+    expect(result.details).toContainEqual({ reason: 'Underdog Covered (+3.5)', points: 2 });
+  });
+
+  it('should calculate upset special points for an outright underdog win', () => {
+    const jaguars49ersSummary = makeGameSummary('401772848', [
+      { id: '25', score: '21', winner: false },
+      { id: '30', score: '26', winner: true },
+    ]);
+
+    const result = ScoringEngine.calculateUpsetSpecialScore({
+      summary: jaguars49ersSummary,
+      pickedTeamId: '30',
+      favoriteTeamId: '25',
+      spread: 3.5,
+    });
+
+    expect(result.totalPoints).toBe(4);
+    expect(result.details).toContainEqual({ reason: 'Underdog Win (+3.5)', points: 4 });
+  });
+
+  it('should calculate upset special points for a 10+ point underdog win', () => {
+    const panthersPackersSummary = makeGameSummary('401772872', [
+      { id: '9', score: '13', winner: false },
+      { id: '29', score: '16', winner: true },
+    ]);
+
+    const result = ScoringEngine.calculateUpsetSpecialScore({
+      summary: panthersPackersSummary,
+      pickedTeamId: '29',
+      favoriteTeamId: '9',
+      spread: 10.5,
+    });
+
+    expect(result.totalPoints).toBe(6);
+    expect(result.details).toContainEqual({ reason: '10+ Point Underdog Win (+10.5)', points: 6 });
+  });
+
+  it('should not score upset special points for a push', () => {
+    const pushSummary = makeGameSummary('push', [
+      { id: '1', score: '24', winner: true },
+      { id: '2', score: '21', winner: false },
+    ]);
+
+    const result = ScoringEngine.calculateUpsetSpecialScore({
+      summary: pushSummary,
+      pickedTeamId: '2',
+      favoriteTeamId: '1',
+      spread: 3,
+    });
+
+    expect(result.totalPoints).toBe(0);
+    expect(result.details).toEqual([]);
   });
 });
