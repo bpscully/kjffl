@@ -331,7 +331,6 @@ describe('ScoringEngine', () => {
     const result = ScoringEngine.calculateUpsetSpecialScore({
       summary: coltsChiefsSummary,
       pickedTeamId: '11',
-      favoriteTeamId: '12',
       spread: 3.5,
     });
 
@@ -348,7 +347,6 @@ describe('ScoringEngine', () => {
     const result = ScoringEngine.calculateUpsetSpecialScore({
       summary: jaguars49ersSummary,
       pickedTeamId: '30',
-      favoriteTeamId: '25',
       spread: 3.5,
     });
 
@@ -365,7 +363,6 @@ describe('ScoringEngine', () => {
     const result = ScoringEngine.calculateUpsetSpecialScore({
       summary: panthersPackersSummary,
       pickedTeamId: '29',
-      favoriteTeamId: '9',
       spread: 10.5,
     });
 
@@ -382,7 +379,6 @@ describe('ScoringEngine', () => {
     const result = ScoringEngine.calculateUpsetSpecialScore({
       summary: pushSummary,
       pickedTeamId: '2',
-      favoriteTeamId: '1',
       spread: 3,
     });
 

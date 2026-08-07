@@ -80,7 +80,6 @@ export interface PlayerScoreResult {
 export interface UpsetSpecialInput {
   summary: EspnSummary;
   pickedTeamId: string;
-  favoriteTeamId: string;
   spread: number;
 }
 
@@ -99,10 +98,9 @@ export class ScoringEngine {
     const details: ScoringDetail[] = [];
     const competition = input.summary.header.competitions[0];
     const pickedTeam = competition.competitors.find(c => c.id === input.pickedTeamId);
-    const favoriteTeam = competition.competitors.find(c => c.id === input.favoriteTeamId);
     const opponent = competition.competitors.find(c => c.id !== input.pickedTeamId);
 
-    if (!pickedTeam || !favoriteTeam || !opponent || input.pickedTeamId === input.favoriteTeamId) {
+    if (!pickedTeam || !opponent) {
       return {
         pickedTeamId: input.pickedTeamId,
         totalPoints: 0,
@@ -164,7 +162,6 @@ export class ScoringEngine {
     const gameStatus = competition.status?.type?.detail || competition.status?.type?.description || 'Unknown';
     
     // Find Team/Opponent for this player
-    let teamAbbr = '??';
     let oppAbbr = '??';
     
     const teamData = summary.boxscore.players.find(p => {
@@ -180,7 +177,6 @@ export class ScoringEngine {
     });
 
     if (teamData) {
-        teamAbbr = teamData.team.abbreviation;
         const teamIdStr = String(teamData.team.id);
         const oppData = summary.boxscore.players.find(p => String(p.team.id) !== teamIdStr);
         oppAbbr = oppData?.team?.abbreviation || '??';
@@ -392,15 +388,15 @@ export class ScoringEngine {
         if (convText.includes('Pass to')) {
             const [passerPart, receiverPart] = convText.split(' Pass to ');
             if (passerPart.includes(playerName)) {
-                details.push({ reason: '2-Pt Conversion (Pass)', points: (scoringRules as any).conversions.pass });
+                details.push({ reason: '2-Pt Conversion (Pass)', points: scoringRules.conversions.pass });
             } else if (receiverPart.includes(playerName)) {
-                details.push({ reason: '2-Pt Conversion (Reception)', points: (scoringRules as any).conversions.receive });
+                details.push({ reason: '2-Pt Conversion (Reception)', points: scoringRules.conversions.receive });
             }
         } 
         // Rush/Run Conversion
         else if (convText.includes('Rush') || convText.includes('Run')) {
             if (convText.includes(playerName)) {
-                details.push({ reason: '2-Pt Conversion (Rush)', points: (scoringRules as any).conversions.rush });
+                details.push({ reason: '2-Pt Conversion (Rush)', points: scoringRules.conversions.rush });
             }
         }
       }

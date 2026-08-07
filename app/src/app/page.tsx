@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRoster } from '@/hooks/use-roster';
 import { PlayerSearch } from '@/components/features/player-search';
 import { PlayerCard } from '@/components/features/player-card';
+import { UpsetSpecialPicker } from '@/components/features/upset-special-picker';
 import { PlayerScoreResult } from '@/lib/scoring-engine';
+import { RosterPlayer } from '@/types';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -17,15 +19,7 @@ export default function Home() {
   const [scores, setScores] = useState<Record<string, PlayerScoreResult>>({});
   const [isLoadingScores, setIsLoadingScores] = useState(false);
 
-  // Fetch scores when roster or week changes
-  useEffect(() => {
-    if (isLoaded && roster.length > 0) {
-      console.log('Current Roster:', roster);
-      fetchScores();
-    }
-  }, [roster.length, season, week, seasonType, isLoaded]);
-
-  const fetchScores = async () => {
+  const fetchScores = useCallback(async () => {
     setIsLoadingScores(true);
     try {
       const response = await fetch('/api/scores', {
@@ -56,7 +50,15 @@ export default function Home() {
     } finally {
       setIsLoadingScores(false);
     }
-  };
+  }, [roster, season, week, seasonType]);
+
+  // Fetch scores when roster or week changes
+  useEffect(() => {
+    if (isLoaded && roster.length > 0) {
+      console.log('Current Roster:', roster);
+      fetchScores();
+    }
+  }, [fetchScores, isLoaded, roster]);
 
   const clearRoster = () => {
     if (confirm('Clear entire roster?')) {
@@ -75,7 +77,7 @@ export default function Home() {
     'D/ST': 6
   };
 
-  const sortPlayers = (a: any, b: any) => {
+  const sortPlayers = (a: RosterPlayer, b: RosterPlayer) => {
     const orderA = positionOrder[a.pos] || 99;
     const orderB = positionOrder[b.pos] || 99;
     return orderA - orderB;
@@ -93,7 +95,7 @@ export default function Home() {
     <main className="container mx-auto max-w-2xl p-4 space-y-8 pb-20">
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-extrabold tracking-tight text-primary">KJ's FFL Scores</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-primary">KJ&apos;s FFL Scores</h1>
             <div className="flex gap-2">
                 <Button 
                     variant="ghost" 
@@ -153,6 +155,8 @@ export default function Home() {
             </div>
         </div>
       </header>
+
+      <UpsetSpecialPicker season={season} seasonType={seasonType} week={week} />
 
       <section className="bg-card border rounded-xl p-6 shadow-sm">
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Add to Roster</h2>
