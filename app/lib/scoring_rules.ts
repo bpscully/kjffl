@@ -55,12 +55,14 @@ export const scoringRules = {
   defense: {
     safety: 3,
     holdMinus10: 3, // Win only
+    pat: 1,
     td: 3.5,
     shutOut: 4,
   },
   returnSpecialTeams: {
     safety: 3,
-    otherScores: 3, // PAT - 1.00
+    pat: 1,
+    otherScores: 3,
     punt: 3.5,
     kickoff: 4,
   },

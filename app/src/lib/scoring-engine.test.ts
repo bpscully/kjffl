@@ -157,6 +157,89 @@ describe('ScoringEngine', () => {
     expect(result.details).toContainEqual({ reason: 'Held Opponent < 10 Pts (Win)', points: 3 });
   });
 
+  it('should score a blocked field goal return TD for D/ST special teams', () => {
+    const eaglesRamsSummary: EspnSummary = {
+      id: '401772839',
+      header: {
+        competitions: [{
+          competitors: [
+            { id: '21', score: '33', winner: true },
+            { id: '14', score: '26', winner: false },
+          ],
+          status: {
+            type: { name: 'STATUS_FINAL', description: 'Final', detail: 'Final' },
+          },
+        }],
+      },
+      scoringPlays: [{
+        id: 'blocked-fg-return',
+        type: { id: '18', text: 'Blocked Field Goal', abbreviation: 'BFG' },
+        text: 'Blocked Kick Recovered by Jordan Davis (PHI) Jordan Davis 61 Yd Touchown Return',
+        awayScore: 33,
+        homeScore: 26,
+        team: { id: '21' },
+      }],
+      boxscore: {
+        players: [
+          { team: { id: '21', abbreviation: 'PHI' }, statistics: [] },
+          { team: { id: '14', abbreviation: 'LAR' }, statistics: [] },
+        ],
+      },
+    };
+
+    const result = ScoringEngine.calculatePlayerScore('21', eaglesRamsSummary, 'D/ST');
+
+    expect(result.totalPoints).toBe(3);
+    expect(result.details).toContainEqual({ reason: '1 Special Teams Return TD(s)', points: 3 });
+  });
+
+  it('should score a defensive PAT conversion return without scoring a plain blocked PAT', () => {
+    const cowboysPackersSummary: EspnSummary = {
+      id: '401772921',
+      header: {
+        competitions: [{
+          competitors: [
+            { id: '6', score: '40', winner: false },
+            { id: '9', score: '40', winner: false },
+          ],
+          status: {
+            type: { name: 'STATUS_FINAL', description: 'Final', detail: 'Final' },
+          },
+        }],
+      },
+      scoringPlays: [
+        {
+          id: 'blocked-pat-no-score',
+          type: { id: '67', text: 'Passing Touchdown', abbreviation: 'TD' },
+          text: 'Romeo Doubs 1 Yd pass from Jordan Love (Brandon McManus PAT blocked)',
+          awayScore: 40,
+          homeScore: 39,
+          team: { id: '9' },
+        },
+        {
+          id: 'defensive-pat-conversion',
+          text: 'Markquese Bell Defensive PAT Conversion',
+          awayScore: 40,
+          homeScore: 40,
+          team: { id: '6' },
+        },
+      ],
+      boxscore: {
+        players: [
+          { team: { id: '6', abbreviation: 'DAL' }, statistics: [] },
+          { team: { id: '9', abbreviation: 'GB' }, statistics: [] },
+        ],
+      },
+    };
+
+    const cowboysResult = ScoringEngine.calculatePlayerScore('6', cowboysPackersSummary, 'D/ST');
+    const packersResult = ScoringEngine.calculatePlayerScore('9', cowboysPackersSummary, 'D/ST');
+
+    expect(cowboysResult.totalPoints).toBe(1);
+    expect(cowboysResult.details).toContainEqual({ reason: '1 Defensive PAT Conversion Return(s)', points: 1 });
+    expect(packersResult.totalPoints).toBe(0);
+  });
+
   it('should calculate 2-pt conversions correctly (Baker Mayfield)', () => {
     const conversionSummary: EspnSummary = {
         id: '2',

@@ -6,7 +6,7 @@ import { scoringRules } from '../../lib/scoring_rules';
 
 export interface EspnScoringPlay {
   id: string;
-  type: {
+  type?: {
     id: string;
     text: string;
     abbreviation: string;
@@ -91,6 +91,7 @@ export class ScoringEngine {
     
     if (position === 'D/ST') {
       this.addDstPoints(playerId, summary, details);
+      this.addReturnSpecialTeamsPoints(playerId, summary, details);
     } else {
       // 1. Calculate Yardage & Totals from Boxscore
       this.addBoxscorePoints(playerId, summary, details);
@@ -162,11 +163,15 @@ export class ScoringEngine {
 
     for (const play of summary.scoringPlays) {
       const isForTeam = play.team.id === teamId;
-      const type = play.type.text;
+      const type = play.type?.text || '';
+      const text = play.text || '';
 
       if (isForTeam) {
         if (type.includes('Interception Return Touchdown') || type.includes('Fumble Recovery Touchdown')) {
           defensiveTds++;
+        }
+        if (/Defensive Two-Point Conversion/i.test(text)) {
+          details.push({ reason: 'Defensive Two-Point Conversion Return', points: scoringRules.defense.pat });
         }
         if (type.includes('Safety')) {
           safeties++;
@@ -179,6 +184,48 @@ export class ScoringEngine {
     }
     if (safeties > 0) {
       details.push({ reason: `${safeties} Safety`, points: safeties * scoringRules.defense.safety });
+    }
+  }
+
+  private static addReturnSpecialTeamsPoints(teamId: string, summary: EspnSummary, details: ScoringDetail[]) {
+    let puntReturnTds = 0;
+    let kickoffReturnTds = 0;
+    let otherReturnScores = 0;
+    let defensivePatConversions = 0;
+
+    for (const play of summary.scoringPlays) {
+      const isForTeam = play.team.id === teamId;
+      if (!isForTeam) continue;
+
+      const type = play.type?.text || '';
+      const text = play.text || '';
+      const playDescription = `${type} ${text}`;
+
+      if (/Defensive PAT Conversion/i.test(text)) {
+        defensivePatConversions++;
+      } else if (/Kickoff Return Touchdown/i.test(type)) {
+        kickoffReturnTds++;
+      } else if (/Punt Return Touchdown|Blocked Punt Touchdown/i.test(type)) {
+        puntReturnTds++;
+      } else if (
+        /Blocked Field Goal/i.test(type) &&
+        /Touchdown Return|Touchown Return|Return.*Touchdown/i.test(playDescription)
+      ) {
+        otherReturnScores++;
+      }
+    }
+
+    if (puntReturnTds > 0) {
+      details.push({ reason: `${puntReturnTds} Punt Return TD(s)`, points: puntReturnTds * scoringRules.returnSpecialTeams.punt });
+    }
+    if (kickoffReturnTds > 0) {
+      details.push({ reason: `${kickoffReturnTds} Kickoff Return TD(s)`, points: kickoffReturnTds * scoringRules.returnSpecialTeams.kickoff });
+    }
+    if (otherReturnScores > 0) {
+      details.push({ reason: `${otherReturnScores} Special Teams Return TD(s)`, points: otherReturnScores * scoringRules.returnSpecialTeams.otherScores });
+    }
+    if (defensivePatConversions > 0) {
+      details.push({ reason: `${defensivePatConversions} Defensive PAT Conversion Return(s)`, points: defensivePatConversions * scoringRules.returnSpecialTeams.pat });
     }
   }
 
@@ -246,7 +293,7 @@ export class ScoringEngine {
     for (const play of summary.scoringPlays) {
       const text = play.text;
       const yards = this.parseYardage(text);
-      const type = play.type.text;
+      const type = play.type?.text || '';
 
       // 1. Rushing Touchdown
       // Format: "Drake Maye 6 Yd Rush"
