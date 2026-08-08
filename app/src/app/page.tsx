@@ -6,14 +6,17 @@ import { PlayerSearch } from '@/components/features/player-search';
 import { PlayerCard } from '@/components/features/player-card';
 import { UpsetSpecialPicker } from '@/components/features/upset-special-picker';
 import { PlayerScoreResult } from '@/lib/scoring-engine';
+import { getDefaultNflWeek, getSeasonOptions } from '@/lib/nfl-week';
 import { RosterPlayer } from '@/types';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const { roster, addPlayer, removePlayer, toggleStarter, isLoaded } = useRoster();
-  const [season, setSeason] = useState(2025);
-  const [week, setWeek] = useState(1);
+  const defaultNflWeek = getDefaultNflWeek();
+  const seasonOptions = getSeasonOptions();
+  const [season, setSeason] = useState(defaultNflWeek.season);
+  const [week, setWeek] = useState(defaultNflWeek.week);
   const [seasonType, setSeasonType] = useState(2); // 2 = Regular, 3 = Post
   
   const [scores, setScores] = useState<Record<string, PlayerScoreResult>>({});
@@ -123,8 +126,9 @@ export default function Home() {
                 onChange={(e) => setSeason(Number(e.target.value))}
                 className="bg-secondary text-secondary-foreground text-sm font-medium px-2 py-1 rounded-md border-none outline-none focus:ring-2 focus:ring-ring"
             >
-                <option value={2024}>2024</option>
-                <option value={2025}>2025</option>
+                {seasonOptions.map((seasonOption) => (
+                  <option key={seasonOption} value={seasonOption}>{seasonOption}</option>
+                ))}
             </select>
 
             <select 
