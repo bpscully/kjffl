@@ -5,14 +5,21 @@ export const dynamic = 'force-dynamic'; // Ensure we process query params
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
+  const ids = searchParams.get('ids')?.split(',').map((id) => id.trim()).filter(Boolean);
   const query = searchParams.get('q')?.toLowerCase();
-
-  if (!query || query.length < 3) {
-    return NextResponse.json({ results: [] });
-  }
 
   try {
     const players = await getPlayers();
+
+    if (ids && ids.length > 0) {
+      const idSet = new Set(ids);
+      const results = players.filter((player) => idSet.has(player.id));
+      return NextResponse.json({ results });
+    }
+
+    if (!query || query.length < 3) {
+      return NextResponse.json({ results: [] });
+    }
     
     const results = players
       .filter(p => p.name.toLowerCase().includes(query))
