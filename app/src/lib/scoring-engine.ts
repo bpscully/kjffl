@@ -56,7 +56,7 @@ export interface EspnSummary {
   };
   scoringPlays: EspnScoringPlay[];
   boxscore: {
-    players: {
+    players?: {
       team: { id: string; abbreviation: string };
       statistics: EspnStatGroup[];
     }[];
@@ -169,7 +169,9 @@ export class ScoringEngine {
     // Find Team/Opponent for this player
     let oppAbbr = '??';
     
-    const teamData = summary.boxscore.players.find(p => {
+    const boxscorePlayers = summary.boxscore?.players || [];
+
+    const teamData = boxscorePlayers.find(p => {
         const teamIdStr = String(p.team.id);
         const playerIdStr = String(playerId);
 
@@ -183,7 +185,7 @@ export class ScoringEngine {
 
     if (teamData) {
         const teamIdStr = String(teamData.team.id);
-        const oppData = summary.boxscore.players.find(p => String(p.team.id) !== teamIdStr);
+        const oppData = boxscorePlayers.find(p => String(p.team.id) !== teamIdStr);
         oppAbbr = oppData?.team?.abbreviation || '??';
     } else if (teamId) {
         const oppCompetitor = competition.competitors.find(c => String(c.id) !== String(teamId));
@@ -223,7 +225,7 @@ export class ScoringEngine {
     let defensiveTds = 0;
     let safeties = 0;
 
-    for (const play of summary.scoringPlays) {
+    for (const play of summary.scoringPlays || []) {
       const isForTeam = play.team.id === teamId;
       const type = play.type?.text || '';
       const text = play.text || '';
@@ -255,7 +257,7 @@ export class ScoringEngine {
     let otherReturnScores = 0;
     let defensivePatConversions = 0;
 
-    for (const play of summary.scoringPlays) {
+    for (const play of summary.scoringPlays || []) {
       const isForTeam = play.team.id === teamId;
       if (!isForTeam) continue;
 
@@ -296,7 +298,7 @@ export class ScoringEngine {
     let receivingYards = 0;
 
     // Find the player in the boxscore
-    for (const teamData of summary.boxscore.players) {
+    for (const teamData of summary.boxscore?.players || []) {
       for (const group of teamData.statistics) {
         const line = group.athletes.find(a => a.athlete.id === playerId);
         if (!line) continue;
@@ -352,7 +354,7 @@ export class ScoringEngine {
     const playerName = this.getPlayerName(playerId, summary);
     if (!playerName) return;
 
-    for (const play of summary.scoringPlays) {
+    for (const play of summary.scoringPlays || []) {
       const text = play.text;
       const yards = this.parseYardage(text);
       const type = play.type?.text || '';
@@ -426,7 +428,7 @@ export class ScoringEngine {
   }
 
   private static getPlayerName(playerId: string, summary: EspnSummary): string | null {
-    for (const team of summary.boxscore.players) {
+    for (const team of summary.boxscore?.players || []) {
       for (const group of team.statistics) {
         const line = group.athletes.find(a => a.athlete.id === playerId);
         if (line) return line.athlete.displayName;

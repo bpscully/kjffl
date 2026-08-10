@@ -194,9 +194,7 @@ describe('ScoringEngine', () => {
         }],
       },
       scoringPlays: [],
-      boxscore: {
-        players: [],
-      },
+      boxscore: {},
     };
 
     const result = ScoringEngine.calculatePlayerScore('3139477', scheduledSummary, 'QB', '12');
