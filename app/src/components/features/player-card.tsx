@@ -12,6 +12,7 @@ interface PlayerCardProps {
   score?: number;
   scoreDetails?: { reason: string; points: number }[];
   gameStatus?: string;
+  gameStatusType?: string;
   opponentAbbr?: string;
   loading?: boolean;
   onRemove: (id: string) => void;
@@ -23,6 +24,7 @@ export function PlayerCard({
   score, 
   scoreDetails, 
   gameStatus, 
+  gameStatusType,
   opponentAbbr, 
   loading, 
   onRemove, 
@@ -39,7 +41,9 @@ export function PlayerCard({
   const fallbackUrl = 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/0.png&w=350&h=254&cb=1';
 
   const hasDetails = scoreDetails && scoreDetails.length > 0;
-  const isLive = gameStatus && !gameStatus.includes('Final') && !gameStatus.includes('Scheduled') && !gameStatus.includes('N/A');
+  const isScheduled = gameStatusType === 'STATUS_SCHEDULED' || gameStatus === 'Scheduled';
+  const isFinal = gameStatusType === 'STATUS_FINAL' || Boolean(gameStatus?.includes('Final'));
+  const isLive = Boolean(gameStatus) && !isScheduled && !isFinal && gameStatus !== 'N/A';
   const isBench = !player.isStarter;
 
   return (
@@ -94,6 +98,9 @@ export function PlayerCard({
             {isLive && (
                 <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-background rounded-full animate-pulse" />
             )}
+            {isScheduled && (
+                <div className="absolute bottom-0 right-0 h-3 w-3 bg-yellow-400 border-2 border-background rounded-full" />
+            )}
             </div>
 
             {/* Info */}
@@ -123,8 +130,10 @@ export function PlayerCard({
                 {gameStatus && (
                     <p className={cn(
                         "text-[10px] font-medium mt-1",
-                        isLive ? "text-green-600 font-bold" : "text-muted-foreground",
-                        isBench && !isLive && "opacity-60"
+                        isLive && "text-green-600 font-bold",
+                        isScheduled && "text-yellow-600 font-bold",
+                        !isLive && !isScheduled && "text-muted-foreground",
+                        isBench && !isLive && !isScheduled && "opacity-60"
                     )}>
                         {gameStatus}
                     </p>
@@ -146,7 +155,11 @@ export function PlayerCard({
                     <div className="flex items-center gap-1">
                         <span className={cn(
                             "text-xl font-bold font-mono",
-                            score && score > 0 ? (isBench ? "text-muted-foreground" : "text-primary") : "text-muted-foreground"
+                            isScheduled && "text-yellow-600",
+                            isLive && "text-green-600",
+                            !isScheduled && !isLive && isFinal && "text-foreground",
+                            !isScheduled && !isLive && !isFinal && "text-muted-foreground",
+                            score && score > 0 && !isScheduled && !isLive && (isBench ? "text-muted-foreground" : "text-primary")
                         )}>
                             {score !== undefined ? score.toFixed(2) : '--'}
                         </span>

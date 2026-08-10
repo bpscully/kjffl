@@ -41,6 +41,9 @@ export interface EspnSummary {
         id: string;
         score: string;
         winner: boolean;
+        team?: {
+          abbreviation?: string;
+        };
       }[];
       status: {
         type: {
@@ -74,6 +77,7 @@ export interface PlayerScoreResult {
   totalPoints: number;
   details: ScoringDetail[];
   gameStatus: string; // e.g. "Final", "Q3 2:10", "Scheduled"
+  gameStatusType?: string; // e.g. "STATUS_FINAL", "STATUS_IN_PROGRESS", "STATUS_SCHEDULED"
   opponentAbbr: string; // e.g. "KC"
 }
 
@@ -141,7 +145,7 @@ export class ScoringEngine {
   /**
    * Main entry point for calculating a single player's score from a game summary.
    */
-  static calculatePlayerScore(playerId: string, summary: EspnSummary, position?: string): PlayerScoreResult {
+  static calculatePlayerScore(playerId: string, summary: EspnSummary, position?: string, teamId?: string): PlayerScoreResult {
     const details: ScoringDetail[] = [];
     
     if (position === 'D/ST') {
@@ -159,6 +163,7 @@ export class ScoringEngine {
     
     // Extract Game Status & Opponent
     const competition = summary.header.competitions[0];
+    const gameStatusType = competition.status?.type?.name;
     const gameStatus = competition.status?.type?.detail || competition.status?.type?.description || 'Unknown';
     
     // Find Team/Opponent for this player
@@ -180,6 +185,9 @@ export class ScoringEngine {
         const teamIdStr = String(teamData.team.id);
         const oppData = summary.boxscore.players.find(p => String(p.team.id) !== teamIdStr);
         oppAbbr = oppData?.team?.abbreviation || '??';
+    } else if (teamId) {
+        const oppCompetitor = competition.competitors.find(c => String(c.id) !== String(teamId));
+        oppAbbr = oppCompetitor?.team?.abbreviation || '??';
     }
 
     return {
@@ -187,6 +195,7 @@ export class ScoringEngine {
       totalPoints: Number(totalPoints.toFixed(2)),
       details,
       gameStatus,
+      gameStatusType,
       opponentAbbr: oppAbbr
     };
   }

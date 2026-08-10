@@ -1,27 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { espnApi } from '@/lib/espn-api';
-import { ScoringEngine, PlayerScoreResult } from '@/lib/scoring-engine';
+import { EspnSummary, ScoringEngine, PlayerScoreResult } from '@/lib/scoring-engine';
+
+interface ScoreRequestPlayer {
+  id: string;
+  teamId?: string;
+  pos?: string;
+  name?: string;
+}
+
+interface EventCompetitor {
+  id?: string;
+  team?: {
+    $ref?: string;
+  };
+}
+
+interface WeekEvent {
+  id: string;
+  competitions: {
+    competitors: EventCompetitor[];
+  }[];
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { players, season, week, seasonType = 2 } = await req.json();
+    const { players, season, week, seasonType = 2 } = await req.json() as {
+      players?: ScoreRequestPlayer[];
+      season: number;
+      week: number;
+      seasonType?: number;
+    };
 
     if (!players || !Array.isArray(players)) {
       return NextResponse.json({ error: 'Missing players array' }, { status: 400 });
     }
 
     // 1. Fetch Week Events
-    const events = await espnApi.getWeekEvents(season, week, seasonType);
+    const events = await espnApi.getWeekEvents(season, week, seasonType) as WeekEvent[];
     console.log(`Fetched ${events.length} events for ${season} Week ${week} (Type ${seasonType})`);
     
     // 2. Map Team ID -> Event ID
     const teamToEventMap = new Map<string, string>();
-    events.forEach((event: any) => {
-      event.competitions[0].competitors.forEach((c: any) => {
+    events.forEach((event) => {
+      event.competitions[0].competitors.forEach((c) => {
         // We need to be absolutely sure we have the correct Team ID
         // In the core API events response, the competitor object often has an 'id' that IS the team ID,
         // but it's safer to extract it from the team ref if present.
-        let tId = c.id;
+        let tId = c.id || '';
         if (c.team?.$ref) {
             const parts = c.team.$ref.split('/');
             tId = parts[parts.length - 1].split('?')[0];
@@ -35,7 +61,7 @@ export async function POST(req: NextRequest) {
 
         // 3. Collect Unique Event IDs we need to fetch
         const uniqueEventIds = new Set<string>();
-        players.forEach((p: any) => {
+        players.forEach((p) => {
           if (!p.teamId) {
               console.error(`Player ${p.id} (${p.name}) is missing teamId!`);
               return;
@@ -47,7 +73,7 @@ export async function POST(req: NextRequest) {
         });
     
         // 4. Fetch Event Summaries
-        const summariesMap = new Map<string, any>();
+        const summariesMap = new Map<string, EspnSummary>();
         await Promise.all(
           Array.from(uniqueEventIds).map(async (id) => {
             try {
@@ -60,8 +86,8 @@ export async function POST(req: NextRequest) {
         );
     
         // 5. Calculate Scores
-        const results: PlayerScoreResult[] = players.map((p: any) => {
-          const eventId = teamToEventMap.get(p.teamId);
+        const results: PlayerScoreResult[] = players.map((p) => {
+          const eventId = p.teamId ? teamToEventMap.get(p.teamId) : undefined;
           const summary = eventId ? summariesMap.get(eventId) : null;
     
                 if (!summary) {
@@ -75,7 +101,7 @@ export async function POST(req: NextRequest) {
                     opponentAbbr: '--'
                   };
                 }    
-          return ScoringEngine.calculatePlayerScore(p.id, summary, p.pos);
+          return ScoringEngine.calculatePlayerScore(p.id, summary, p.pos, p.teamId);
         });
     
         return NextResponse.json({ results });

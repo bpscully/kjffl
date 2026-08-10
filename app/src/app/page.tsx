@@ -196,6 +196,7 @@ export default function Home() {
                     score={scores[player.id]?.totalPoints}
                     scoreDetails={scores[player.id]?.details}
                     gameStatus={scores[player.id]?.gameStatus}
+                    gameStatusType={scores[player.id]?.gameStatusType}
                     opponentAbbr={scores[player.id]?.opponentAbbr}
                     loading={isLoadingScores}
                 />
@@ -225,6 +226,7 @@ export default function Home() {
                     score={scores[player.id]?.totalPoints}
                     scoreDetails={scores[player.id]?.details}
                     gameStatus={scores[player.id]?.gameStatus}
+                    gameStatusType={scores[player.id]?.gameStatusType}
                     opponentAbbr={scores[player.id]?.opponentAbbr}
                     loading={isLoadingScores}
                 />
