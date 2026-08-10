@@ -206,6 +206,32 @@ describe('ScoringEngine', () => {
     expect(result.opponentAbbr).toBe('PHI');
   });
 
+  it('should not award D/ST shutout points before a game is final', () => {
+    const scheduledSummary: EspnSummary = {
+      id: 'scheduled-dst-game',
+      header: {
+        competitions: [{
+          competitors: [
+            { id: '12', score: '0', winner: false, team: { abbreviation: 'KC' } },
+            { id: '21', score: '0', winner: false, team: { abbreviation: 'PHI' } },
+          ],
+          status: {
+            type: { name: 'STATUS_SCHEDULED', description: 'Scheduled', detail: '9/10 - 8:20 PM EDT' },
+          },
+        }],
+      },
+      scoringPlays: [],
+      boxscore: {},
+    };
+
+    const result = ScoringEngine.calculatePlayerScore('12', scheduledSummary, 'D/ST', '12');
+
+    expect(result.totalPoints).toBe(0);
+    expect(result.details).toEqual([]);
+    expect(result.gameStatusType).toBe('STATUS_SCHEDULED');
+    expect(result.opponentAbbr).toBe('PHI');
+  });
+
   it('should score a blocked field goal return TD for D/ST special teams', () => {
     const eaglesRamsSummary: EspnSummary = {
       id: '401772839',

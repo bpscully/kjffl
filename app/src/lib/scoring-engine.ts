@@ -211,13 +211,14 @@ export class ScoringEngine {
 
     const pointsAllowed = parseInt(oppCompetitor.score || '0');
     const isWin = teamCompetitor.winner;
+    const isFinal = competition.status?.type?.name === 'STATUS_FINAL';
 
     // 1. Shutout (4 pts)
-    if (pointsAllowed === 0) {
+    if (isFinal && pointsAllowed === 0) {
       details.push({ reason: 'Shutout', points: scoringRules.defense.shutOut });
     } 
     // 2. Hold < 10 (3 pts, Win Only)
-    else if (pointsAllowed < 10 && isWin) {
+    else if (isFinal && pointsAllowed < 10 && isWin) {
       details.push({ reason: 'Held Opponent < 10 Pts (Win)', points: scoringRules.defense.holdMinus10 });
     }
 
