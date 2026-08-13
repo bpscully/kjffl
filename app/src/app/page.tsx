@@ -12,7 +12,7 @@ import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Home() {
-  const { roster, addPlayer, removePlayer, toggleStarter, isLoaded } = useRoster();
+  const { roster, addPlayer, removePlayer, clearRoster, toggleStarter, isLoaded } = useRoster();
   const defaultNflWeek = getDefaultNflWeek();
   const seasonOptions = getSeasonOptions();
   const [season, setSeason] = useState(defaultNflWeek.season);
@@ -63,10 +63,10 @@ export default function Home() {
     }
   }, [fetchScores, isLoaded, roster]);
 
-  const clearRoster = () => {
+  const confirmClearRoster = () => {
     if (confirm('Clear entire roster?')) {
-        localStorage.removeItem('kjffl-roster');
-        window.location.reload();
+      clearRoster();
+      setScores({});
     }
   };
 
@@ -103,7 +103,7 @@ export default function Home() {
                 <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={clearRoster}
+                    onClick={confirmClearRoster}
                     className="text-xs text-muted-foreground hover:text-destructive"
                 >
                     Clear Roster

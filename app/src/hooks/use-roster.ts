@@ -81,6 +81,10 @@ export function useRoster() {
     setRoster((prev) => prev.filter((p) => p.id !== playerId));
   };
 
+  const clearRoster = () => {
+    setRoster([]);
+  };
+
   const toggleStarter = (playerId: string) => {
     setRoster((prev) =>
       prev.map((p) =>
@@ -93,6 +97,7 @@ export function useRoster() {
     roster,
     addPlayer,
     removePlayer,
+    clearRoster,
     toggleStarter,
     isLoaded,
   };
