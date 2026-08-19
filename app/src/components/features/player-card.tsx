@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PlayerUpdateResult, RosterPlayer } from '@/types';
 import { cn } from '@/lib/utils';
+import { formatPacificDateTime } from '@/lib/date-time';
 import {
   ArrowDownWideNarrow,
   ArrowUpWideNarrow,
@@ -188,7 +189,7 @@ export function PlayerCard({
                     <p className={cn(
                         "text-[10px] font-medium mt-1",
                         isLive && "text-green-600 font-bold",
-                        isScheduled && "text-yellow-600 font-bold",
+                        isScheduled && "text-yellow-600 dark:text-yellow-400 font-bold",
                         !isLive && !isScheduled && "text-muted-foreground",
                         isBench && !isLive && !isScheduled && "opacity-60"
                     )}>
@@ -212,7 +213,7 @@ export function PlayerCard({
                     <div className="flex items-center gap-1">
                         <span className={cn(
                             "text-xl font-bold font-mono",
-                            isScheduled && "text-yellow-600",
+                            isScheduled && "text-yellow-600 dark:text-yellow-400",
                             isLive && "text-green-600",
                             !isScheduled && !isLive && isFinal && "text-foreground",
                             !isScheduled && !isLive && !isFinal && "text-muted-foreground",
@@ -271,7 +272,11 @@ export function PlayerCard({
                                     {injury.designation.toUpperCase()}
                                 </span>
                             </div>
-                            <time dateTime={injury.updatedAt} className="block text-[10px] text-muted-foreground">
+                            <time
+                                dateTime={injury.updatedAt}
+                                title={formatPacificDateTime(injury.updatedAt)}
+                                className="block text-[10px] text-muted-foreground"
+                            >
                                 Updated {formatRelativeTime(injury.updatedAt, referenceTime)}
                             </time>
                             {!hasNews && injury.shortComment && (
@@ -289,7 +294,11 @@ export function PlayerCard({
                         <article key={item.id} className="space-y-1 px-3 py-3">
                             <div className="flex items-start justify-between gap-3">
                                 <h5 className="text-xs font-bold leading-snug">{item.headline}</h5>
-                                <time dateTime={item.publishedAt} className="shrink-0 text-[10px] text-muted-foreground">
+                                <time
+                                    dateTime={item.publishedAt}
+                                    title={formatPacificDateTime(item.publishedAt)}
+                                    className="shrink-0 text-[10px] text-muted-foreground"
+                                >
                                     {formatRelativeTime(item.publishedAt, referenceTime)}
                                 </time>
                             </div>

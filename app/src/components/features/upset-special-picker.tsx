@@ -125,6 +125,19 @@ export function UpsetSpecialPicker({ season, seasonType, week }: UpsetSpecialPic
     ));
   };
 
+  const renderScore = (result: UpsetSpecialScoreResult) => {
+    if (!result.isFinal) {
+      return (
+        <span className="text-xs text-muted-foreground">
+          <span className="font-semibold text-yellow-600 dark:text-yellow-400">{result.gameStatus}</span>
+          {'. '}Upset points will be awarded after the game is final.
+        </span>
+      );
+    }
+
+    return renderDetails(result.details);
+  };
+
   return (
     <section className="bg-card border rounded-xl p-6 shadow-sm">
       <div className="flex items-center justify-between gap-3 mb-4">
@@ -180,7 +193,7 @@ export function UpsetSpecialPicker({ season, seasonType, week }: UpsetSpecialPic
           {error ? (
             <div className="text-xs text-destructive">{error}</div>
           ) : (
-            renderDetails(score?.details || [])
+            score ? renderScore(score) : null
           )}
         </div>
       )}

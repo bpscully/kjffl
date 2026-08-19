@@ -1,4 +1,5 @@
 import { scoringRules } from '../../lib/scoring_rules';
+import { formatPacificDateTime } from '@/lib/date-time';
 
 /**
  * Types for ESPN API Responses (Site API /summary)
@@ -37,6 +38,7 @@ export interface EspnSummary {
   id: string;
   header: {
     competitions: {
+      date?: string;
       competitors: {
         id: string;
         score: string;
@@ -50,6 +52,7 @@ export interface EspnSummary {
           name: string;
           description: string;
           detail: string;
+          completed?: boolean;
         };
       };
     }[];
@@ -91,6 +94,9 @@ export interface UpsetSpecialScoreResult {
   pickedTeamId: string;
   totalPoints: number;
   details: ScoringDetail[];
+  gameStatus: string;
+  gameStatusType: string;
+  isFinal: boolean;
 }
 
 /**
@@ -101,6 +107,21 @@ export class ScoringEngine {
   static calculateUpsetSpecialScore(input: UpsetSpecialInput): UpsetSpecialScoreResult {
     const details: ScoringDetail[] = [];
     const competition = input.summary.header.competitions[0];
+    const gameStatusType = competition.status?.type?.name || 'STATUS_UNKNOWN';
+    const gameStatus = getCompetitionStatus(competition);
+    const isFinal = competition.status?.type?.completed === true || gameStatusType === 'STATUS_FINAL';
+
+    if (!isFinal) {
+      return {
+        pickedTeamId: input.pickedTeamId,
+        totalPoints: 0,
+        details,
+        gameStatus,
+        gameStatusType,
+        isFinal,
+      };
+    }
+
     const pickedTeam = competition.competitors.find(c => c.id === input.pickedTeamId);
     const opponent = competition.competitors.find(c => c.id !== input.pickedTeamId);
 
@@ -109,6 +130,9 @@ export class ScoringEngine {
         pickedTeamId: input.pickedTeamId,
         totalPoints: 0,
         details,
+        gameStatus,
+        gameStatusType,
+        isFinal,
       };
     }
 
@@ -122,6 +146,9 @@ export class ScoringEngine {
         pickedTeamId: input.pickedTeamId,
         totalPoints: 0,
         details,
+        gameStatus,
+        gameStatusType,
+        isFinal,
       };
     }
 
@@ -139,6 +166,9 @@ export class ScoringEngine {
       pickedTeamId: input.pickedTeamId,
       totalPoints,
       details,
+      gameStatus,
+      gameStatusType,
+      isFinal,
     };
   }
   
@@ -164,7 +194,7 @@ export class ScoringEngine {
     // Extract Game Status & Opponent
     const competition = summary.header.competitions[0];
     const gameStatusType = competition.status?.type?.name;
-    const gameStatus = competition.status?.type?.detail || competition.status?.type?.description || 'Unknown';
+    const gameStatus = getCompetitionStatus(competition);
     
     // Find Team/Opponent for this player
     let oppAbbr = '??';
@@ -464,4 +494,14 @@ export class ScoringEngine {
     const [min, max] = rangeStr.split('-').map(Number);
     return value >= min && value <= max;
   }
+}
+
+function getCompetitionStatus(
+  competition: EspnSummary['header']['competitions'][number],
+): string {
+  if (competition.status?.type?.name === 'STATUS_SCHEDULED' && competition.date) {
+    return formatPacificDateTime(competition.date);
+  }
+
+  return competition.status?.type?.detail || competition.status?.type?.description || 'Unknown';
 }

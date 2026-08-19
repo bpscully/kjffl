@@ -184,6 +184,7 @@ describe('ScoringEngine', () => {
       id: 'scheduled-game',
       header: {
         competitions: [{
+          date: '2026-09-15T00:15:00Z',
           competitors: [
             { id: '12', score: '0', winner: false, team: { abbreviation: 'KC' } },
             { id: '21', score: '0', winner: false, team: { abbreviation: 'PHI' } },
@@ -201,7 +202,7 @@ describe('ScoringEngine', () => {
 
     expect(result.totalPoints).toBe(0);
     expect(result.details).toEqual([]);
-    expect(result.gameStatus).toBe('9/10 - 8:20 PM EDT');
+    expect(result.gameStatus).toBe('Mon, Sep 14, 5:15 PM PDT');
     expect(result.gameStatusType).toBe('STATUS_SCHEDULED');
     expect(result.opponentAbbr).toBe('PHI');
   });
@@ -437,5 +438,36 @@ describe('ScoringEngine', () => {
 
     expect(result.totalPoints).toBe(0);
     expect(result.details).toEqual([]);
+  });
+
+  it.each([
+    ['scheduled', 'STATUS_SCHEDULED', 'Sun, 1:00 PM'],
+    ['live', 'STATUS_IN_PROGRESS', 'Q3 4:12'],
+  ])('should not score upset special points while a game is %s', (_, statusName, statusDetail) => {
+    const unfinishedSummary = makeGameSummary('unfinished', [
+      { id: '1', score: '0', winner: false },
+      { id: '2', score: '0', winner: false },
+    ]);
+    unfinishedSummary.header.competitions[0].status.type = {
+      name: statusName,
+      description: statusDetail,
+      detail: statusDetail,
+      completed: false,
+    };
+    unfinishedSummary.header.competitions[0].date = '2026-09-15T00:15:00Z';
+
+    const result = ScoringEngine.calculateUpsetSpecialScore({
+      summary: unfinishedSummary,
+      pickedTeamId: '2',
+      spread: 3.5,
+    });
+
+    expect(result.totalPoints).toBe(0);
+    expect(result.details).toEqual([]);
+    expect(result.isFinal).toBe(false);
+    expect(result.gameStatusType).toBe(statusName);
+    if (statusName === 'STATUS_SCHEDULED') {
+      expect(result.gameStatus).toBe('Mon, Sep 14, 5:15 PM PDT');
+    }
   });
 });
