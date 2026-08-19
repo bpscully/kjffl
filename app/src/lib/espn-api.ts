@@ -18,6 +18,18 @@ export interface EspnAthlete {
   active: boolean;
 }
 
+interface EspnSiteRosterAthlete {
+  id: string;
+  fullName: string;
+  position?: { abbreviation?: string };
+  headshot?: { href: string };
+  status?: { type?: string; name?: string };
+}
+
+interface EspnSiteRosterGroup {
+  items?: EspnSiteRosterAthlete[];
+}
+
 class EspnApi {
   private baseUrl: string;
 
@@ -61,13 +73,13 @@ class EspnApi {
             const data = await res.json();
             
             // Site API returns athletes grouped (Offense, Defense, Special Teams, etc.)
-            const allAthletes: any[] = [];
-            data.athletes?.forEach((group: any) => {
-                group.items?.forEach((athlete: any) => {
+            const allAthletes: EspnAthlete[] = [];
+            (data.athletes as EspnSiteRosterGroup[] | undefined)?.forEach((group) => {
+                group.items?.forEach((athlete) => {
                     allAthletes.push({
                         id: athlete.id,
                         fullName: athlete.fullName,
-                        position: { abbreviation: athlete.position?.abbreviation },
+                        position: { abbreviation: athlete.position?.abbreviation ?? 'UNK' },
                         team: { $ref: `.../teams/${team.id}` }, // Mock ref to match our indexer logic
                         headshot: athlete.headshot,
                         active: athlete.status?.type === 'active' || athlete.status?.name === 'Active',
@@ -102,6 +114,12 @@ class EspnApi {
 
   async getGameSummary(eventId: string) {
     const url = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${eventId}`;
+    const res = await fetchWithRetry(url);
+    return res.json();
+  }
+
+  async getLeagueInjuries() {
+    const url = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries';
     const res = await fetchWithRetry(url);
     return res.json();
   }

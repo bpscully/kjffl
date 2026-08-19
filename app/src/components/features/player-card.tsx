@@ -3,9 +3,22 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RosterPlayer } from '@/types';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { PlayerInjuryUpdate, PlayerUpdateResult, RosterPlayer } from '@/types';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronUp, X, ArrowDownWideNarrow, ArrowUpWideNarrow } from 'lucide-react';
+import {
+  ArrowDownWideNarrow,
+  ArrowUpWideNarrow,
+  BriefcaseMedical,
+  ChevronDown,
+  ChevronUp,
+  Newspaper,
+  X,
+} from 'lucide-react';
 
 interface PlayerCardProps {
   player: RosterPlayer;
@@ -15,6 +28,7 @@ interface PlayerCardProps {
   gameStatusType?: string;
   opponentAbbr?: string;
   loading?: boolean;
+  updates?: PlayerUpdateResult;
   onRemove: (id: string) => void;
   onToggleStarter: (id: string) => void;
 }
@@ -27,11 +41,13 @@ export function PlayerCard({
   gameStatusType,
   opponentAbbr, 
   loading, 
+  updates,
   onRemove, 
   onToggleStarter 
 }: PlayerCardProps) {
   const [imgError, setImgError] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<'score' | 'news' | null>(null);
+  const [referenceTime] = useState(() => Date.now());
   
   const isDST = player.pos === 'D/ST';
   const headshotUrl = isDST 
@@ -45,6 +61,19 @@ export function PlayerCard({
   const isFinal = gameStatusType === 'STATUS_FINAL' || Boolean(gameStatus?.includes('Final'));
   const isLive = Boolean(gameStatus) && !isScheduled && !isFinal && gameStatus !== 'N/A';
   const isBench = !player.isStarter;
+  const news = isDST ? [] : updates?.news ?? [];
+  const injury = isDST ? null : updates?.injury ?? null;
+  const hasNews = news.length > 0;
+  const hasRecentNews = news.some((item) => {
+    const publishedAt = Date.parse(item.publishedAt);
+    return Number.isFinite(publishedAt)
+      && referenceTime >= publishedAt
+      && referenceTime - publishedAt <= 48 * 60 * 60 * 1000;
+  });
+
+  const toggleSection = (section: 'score' | 'news') => {
+    setExpandedSection((current) => current === section ? null : section);
+  };
 
   return (
     <Card className={cn(
@@ -115,6 +144,27 @@ export function PlayerCard({
                             Bench
                         </span>
                     )}
+                    {hasNews && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                                "relative h-6 w-6 shrink-0",
+                                hasRecentNews
+                                  ? "text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                                  : "text-muted-foreground",
+                            )}
+                            aria-label={hasRecentNews ? `Recent news for ${player.name}` : `News for ${player.name}`}
+                            aria-expanded={expandedSection === 'news'}
+                            onClick={() => toggleSection('news')}
+                        >
+                            <Newspaper className="h-3.5 w-3.5" />
+                            {hasRecentNews && (
+                                <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-amber-500 ring-1 ring-background" />
+                            )}
+                        </Button>
+                    )}
+                    {injury && <InjuryIndicator playerName={player.name} injury={injury} referenceTime={referenceTime} />}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                     <p className="text-xs text-muted-foreground">{player.pos} • {player.team}</p>
@@ -146,7 +196,7 @@ export function PlayerCard({
                     "flex flex-col items-end cursor-pointer select-none min-w-[60px]",
                     hasDetails && "hover:opacity-70"
                 )}
-                onClick={() => hasDetails && setExpanded(!expanded)}
+                onClick={() => hasDetails && toggleSection('score')}
             >
             {loading ? (
                 <div className="h-6 w-10 bg-muted animate-pulse rounded" />
@@ -164,7 +214,7 @@ export function PlayerCard({
                             {score !== undefined ? score.toFixed(2) : '--'}
                         </span>
                         {hasDetails && (
-                            expanded ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                            expandedSection === 'score' ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />
                         )}
                     </div>
                     <span className="text-[10px] uppercase text-muted-foreground">Pts</span>
@@ -174,7 +224,7 @@ export function PlayerCard({
         </div>
 
         {/* Details Expansion */}
-        {expanded && hasDetails && (
+        {expandedSection === 'score' && hasDetails && (
             <div className="bg-muted/30 border-t p-3 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
                 <h4 className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider mb-2">Scoring Breakdown</h4>
                 {scoreDetails.map((detail, idx) => (
@@ -185,7 +235,101 @@ export function PlayerCard({
                 ))}
             </div>
         )}
+
+        {expandedSection === 'news' && hasNews && (
+            <div className="border-t bg-muted/20 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="flex items-center justify-between border-b px-3 py-2">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Player News</h4>
+                    <span className="text-[10px] text-muted-foreground">{news.length} {news.length === 1 ? 'update' : 'updates'}</span>
+                </div>
+                <div className="max-h-64 divide-y overflow-y-auto">
+                    {news.map((item) => (
+                        <article key={item.id} className="space-y-1 px-3 py-3">
+                            <div className="flex items-start justify-between gap-3">
+                                <h5 className="text-xs font-bold leading-snug">{item.headline}</h5>
+                                <time dateTime={item.publishedAt} className="shrink-0 text-[10px] text-muted-foreground">
+                                    {formatRelativeTime(item.publishedAt, referenceTime)}
+                                </time>
+                            </div>
+                            {item.description && (
+                                <p className="text-xs leading-relaxed text-muted-foreground">{item.description}</p>
+                            )}
+                            {item.source && (
+                                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">{item.source} player update</p>
+                            )}
+                        </article>
+                    ))}
+                </div>
+            </div>
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+function formatRelativeTime(value: string, referenceTime: number): string {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return 'Recently';
+
+  const seconds = Math.round((timestamp - referenceTime) / 1000);
+  const formatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+  if (Math.abs(seconds) < 60) return 'just now';
+  const minutes = Math.round(seconds / 60);
+  if (Math.abs(minutes) < 60) return formatter.format(minutes, 'minute');
+  const hours = Math.round(minutes / 60);
+  if (Math.abs(hours) < 24) return formatter.format(hours, 'hour');
+  return formatter.format(Math.round(hours / 24), 'day');
+}
+
+function InjuryIndicator({
+  playerName,
+  injury,
+  referenceTime,
+}: {
+  playerName: string;
+  injury: PlayerInjuryUpdate;
+  referenceTime: number;
+}) {
+  const designation = injury.designation.toUpperCase();
+  const colorClass = {
+    Q: 'border-amber-500/40 bg-amber-500/10 text-amber-700',
+    D: 'border-orange-500/40 bg-orange-500/10 text-orange-700',
+    O: 'border-red-500/40 bg-red-500/10 text-red-700',
+    IR: 'border-red-500/40 bg-red-500/10 text-red-700',
+    SUSP: 'border-purple-500/40 bg-purple-500/10 text-purple-700',
+  }[designation] ?? 'border-border bg-muted text-muted-foreground';
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn("h-6 shrink-0 gap-1 border px-1.5 text-[10px] font-bold", colorClass)}
+          aria-label={`${injury.label} for ${playerName}`}
+        >
+          <BriefcaseMedical className="h-3 w-3" />
+          <span>{designation}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-80 space-y-3">
+        <div>
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="text-sm font-bold capitalize">{injury.label}</h4>
+            <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-bold", colorClass)}>
+              {designation}
+            </span>
+          </div>
+          <time dateTime={injury.updatedAt} className="text-[10px] text-muted-foreground">
+            Updated {formatRelativeTime(injury.updatedAt, referenceTime)}
+          </time>
+        </div>
+        {injury.shortComment && <p className="text-xs font-medium leading-relaxed">{injury.shortComment}</p>}
+        {injury.longComment && injury.longComment !== injury.shortComment && (
+          <p className="text-xs leading-relaxed text-muted-foreground">{injury.longComment}</p>
+        )}
+        {injury.source && <p className="text-[10px] text-muted-foreground">Source: {injury.source}</p>}
+      </PopoverContent>
+    </Popover>
   );
 }

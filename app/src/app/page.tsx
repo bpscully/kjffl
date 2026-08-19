@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRoster } from '@/hooks/use-roster';
+import { usePlayerUpdates } from '@/hooks/use-player-updates';
 import { PlayerSearch } from '@/components/features/player-search';
 import { PlayerCard } from '@/components/features/player-card';
 import { UpsetSpecialPicker } from '@/components/features/upset-special-picker';
@@ -13,6 +14,7 @@ import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const { roster, addPlayer, removePlayer, clearRoster, toggleStarter, isLoaded } = useRoster();
+  const { updates, isLoadingUpdates, fetchUpdates } = usePlayerUpdates(roster, isLoaded);
   const defaultNflWeek = getDefaultNflWeek();
   const seasonOptions = getSeasonOptions();
   const [season, setSeason] = useState(defaultNflWeek.season);
@@ -70,6 +72,10 @@ export default function Home() {
     }
   };
 
+  const refreshAll = () => {
+    void Promise.all([fetchScores(), fetchUpdates()]);
+  };
+
   const positionOrder: Record<string, number> = {
     'QB': 1,
     'RB': 2,
@@ -111,9 +117,10 @@ export default function Home() {
                 <Button 
                     variant="outline" 
                     size="icon" 
-                    onClick={fetchScores} 
-                    disabled={isLoadingScores || roster.length === 0}
-                    className={isLoadingScores ? "animate-spin" : ""}
+                    onClick={refreshAll}
+                    disabled={isLoadingScores || isLoadingUpdates || roster.length === 0}
+                    className={isLoadingScores || isLoadingUpdates ? "animate-spin" : ""}
+                    aria-label="Refresh scores and player updates"
                 >
                     <RefreshCw className="h-4 w-4" />
                 </Button>
@@ -199,6 +206,7 @@ export default function Home() {
                     gameStatusType={scores[player.id]?.gameStatusType}
                     opponentAbbr={scores[player.id]?.opponentAbbr}
                     loading={isLoadingScores}
+                    updates={updates[player.id]}
                 />
               ))}
             </div>
@@ -229,6 +237,7 @@ export default function Home() {
                     gameStatusType={scores[player.id]?.gameStatusType}
                     opponentAbbr={scores[player.id]?.opponentAbbr}
                     loading={isLoadingScores}
+                    updates={updates[player.id]}
                 />
                 ))}
             </div>
