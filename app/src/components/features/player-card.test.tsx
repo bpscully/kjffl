@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PlayerCard } from './player-card';
 import { PlayerUpdateResult, RosterPlayer } from '@/types';
@@ -42,7 +42,7 @@ describe('PlayerCard updates', () => {
     render(
       <PlayerCard
         player={player}
-        updates={updates}
+        updates={{ ...updates, injury: null }}
         score={7}
         scoreDetails={[{ reason: 'Reception', points: 1 }]}
         onRemove={vi.fn()}
@@ -64,7 +64,7 @@ describe('PlayerCard updates', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
-  it('shows injury details in an in-app popover', async () => {
+  it('uses the injury icon for a shared injury and news expansion', () => {
     render(
       <PlayerCard
         player={player}
@@ -74,12 +74,52 @@ describe('PlayerCard updates', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'questionable for Example Player' }));
-    await waitFor(() => {
-      expect(screen.getByText('Limited in practice.')).toBeInTheDocument();
-      expect(screen.getByText('The player will be evaluated again before game day.')).toBeInTheDocument();
-      expect(screen.getByText('Source: RotoWire')).toBeInTheDocument();
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'questionable updates for Example Player' }));
+
+    expect(screen.getByText('Player Updates')).toBeInTheDocument();
+    expect(screen.getByText('questionable')).toBeInTheDocument();
+    expect(screen.getByText('Player returns to practice')).toBeInTheDocument();
+    expect(screen.getByText('The complete summary remains available inside the application.')).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="popover-content"]')).not.toBeInTheDocument();
+  });
+
+  it('shows injury comments in the expansion when there is no news note', () => {
+    render(
+      <PlayerCard
+        player={player}
+        updates={{ ...updates, news: [] }}
+        onRemove={vi.fn()}
+        onToggleStarter={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'questionable updates for Example Player' }));
+    expect(screen.getByText('Limited in practice.')).toBeInTheDocument();
+    expect(screen.getByText('The player will be evaluated again before game day.')).toBeInTheDocument();
+  });
+
+  it('does not repeat status-only injury comments', () => {
+    render(
+      <PlayerCard
+        player={player}
+        updates={{
+          ...updates,
+          news: [],
+          injury: {
+            ...updates.injury!,
+            shortComment: '',
+            longComment: '',
+            source: undefined,
+          },
+        }}
+        onRemove={vi.fn()}
+        onToggleStarter={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'questionable updates for Example Player' }));
+    expect(screen.getAllByText('questionable')).toHaveLength(1);
+    expect(screen.queryByText(/injury update/i)).not.toBeInTheDocument();
   });
 
   it('does not show player updates for D/ST cards', () => {
@@ -93,6 +133,6 @@ describe('PlayerCard updates', () => {
     );
 
     expect(screen.queryByRole('button', { name: /news for/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /questionable for/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /questionable updates/i })).not.toBeInTheDocument();
   });
 });

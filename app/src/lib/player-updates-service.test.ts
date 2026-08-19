@@ -11,7 +11,7 @@ vi.mock('@/lib/espn-api', () => ({
 import { normalizeInjuries, normalizePlayerNotes } from './player-updates-service';
 
 describe('player update normalization', () => {
-  it('normalizes recent Active player notes and excludes designated injuries', () => {
+  it('normalizes meaningful notes for Active and designated players', () => {
     const notes = normalizePlayerNotes({
       injuries: [{ injuries: [
         {
@@ -49,6 +49,32 @@ describe('player update normalization', () => {
           },
         },
         {
+          date: '2026-08-18T13:00:00Z',
+          status: 'Questionable',
+          shortComment: 'questionable',
+          longComment: 'questionable',
+          type: { abbreviation: 'Q', description: 'questionable' },
+          athlete: {
+            links: [{ href: 'https://www.espn.com/nfl/player/_/id/9999/status-only-player' }],
+            notes: { items: [{ source: 'RotoWire' }] },
+          },
+        },
+        {
+          date: '2026-08-18T12:00:00Z',
+          status: 'Questionable',
+          type: { abbreviation: 'Q', description: 'questionable' },
+          athlete: {
+            links: [{ href: 'https://www.espn.com/nfl/player/_/id/9999/status-only-player' }],
+            notes: { items: [{
+              id: 7,
+              type: 'news',
+              date: '2026-08-18T12:00:00Z',
+              headline: 'questionable',
+              text: 'questionable',
+            }] },
+          },
+        },
+        {
           date: '2026-08-18T12:00:00Z',
           status: 'Questionable',
           type: { abbreviation: 'Q', description: 'questionable' },
@@ -59,7 +85,7 @@ describe('player update normalization', () => {
               type: 'news',
               date: '2026-08-18T12:00:00Z',
               headline: 'Injury update',
-              text: 'This belongs in the injury popover.',
+              text: 'This belongs in the shared expansion.',
             }] },
           },
         },
@@ -82,7 +108,13 @@ describe('player update normalization', () => {
         source: 'RotoWire',
       },
     ]);
-    expect(notes.has('5678')).toBe(false);
+    expect(notes.get('5678')).toEqual([{
+      id: '6',
+      headline: 'Injury update',
+      description: 'This belongs in the shared expansion.',
+      publishedAt: '2026-08-18T12:00:00Z',
+    }]);
+    expect(notes.has('9999')).toBe(false);
   });
 
   it('extracts athlete IDs, ignores Active records, and keeps the newest designation', () => {
@@ -116,6 +148,17 @@ describe('player update normalization', () => {
             notes: { items: [{ source: 'RotoWire' }] },
           },
         },
+        {
+          date: '2026-08-18T13:00:00Z',
+          status: 'Questionable',
+          shortComment: 'questionable',
+          longComment: 'questionable',
+          type: { abbreviation: 'Q', description: 'questionable' },
+          athlete: {
+            links: [{ href: 'https://www.espn.com/nfl/player/_/id/9999/status-only-player' }],
+            notes: { items: [{ source: 'RotoWire' }] },
+          },
+        },
       ] }],
     });
 
@@ -128,5 +171,13 @@ describe('player update normalization', () => {
       source: 'RotoWire',
     });
     expect(injuries.has('5678')).toBe(false);
+    expect(injuries.get('9999')).toEqual({
+      designation: 'Q',
+      label: 'questionable',
+      updatedAt: '2026-08-18T13:00:00Z',
+      shortComment: '',
+      longComment: '',
+      source: undefined,
+    });
   });
 });

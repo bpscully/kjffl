@@ -36,6 +36,23 @@ interface EspnInjuryResponse {
 }
 
 const NEWS_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const TRIVIAL_STATUS_NOTES = new Set([
+  'active',
+  'doubtful',
+  'injured reserve',
+  'ir',
+  'out',
+  'questionable',
+  'reserve sus',
+  'suspended',
+  'suspension',
+]);
+
+function isTrivialStatusText(value: string | undefined): boolean {
+  if (!value) return true;
+  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return TRIVIAL_STATUS_NOTES.has(normalized);
+}
 
 export function normalizePlayerNotes(
   payload: EspnInjuryResponse,
@@ -47,12 +64,12 @@ export function normalizePlayerNotes(
   for (const team of payload.injuries ?? []) {
     for (const injury of team.injuries ?? []) {
       const playerId = getInjuryAthleteId(injury);
-      const designation = (injury.type?.abbreviation ?? injury.status ?? '').toUpperCase();
-      if (!playerId || designation !== 'A') continue;
+      if (!playerId) continue;
 
       for (const note of injury.athlete?.notes?.items ?? []) {
         const publishedAt = note.date ?? injury.date;
         if (note.type !== 'news' || !note.headline || !publishedAt) continue;
+        if (isTrivialStatusText(note.headline) && isTrivialStatusText(note.text)) continue;
 
         const publishedTime = Date.parse(publishedAt);
         if (!Number.isFinite(publishedTime)
@@ -106,14 +123,17 @@ export function normalizeInjuries(payload: EspnInjuryResponse): Map<string, Play
 
       const espnDesignation = injury.type?.abbreviation ?? injury.status ?? 'INJ';
       if (espnDesignation.toUpperCase() === 'A') continue;
+      const shortComment = isTrivialStatusText(injury.shortComment) ? '' : injury.shortComment ?? '';
+      const longComment = isTrivialStatusText(injury.longComment) ? '' : injury.longComment ?? '';
+      const hasMeaningfulComment = Boolean(shortComment || longComment);
 
       injuries.set(playerId, {
         designation: espnDesignation,
         label: injury.type?.description ?? injury.status ?? 'Injury update',
         updatedAt: injury.date,
-        shortComment: injury.shortComment ?? '',
-        longComment: injury.longComment ?? '',
-        source: injury.athlete?.notes?.items?.[0]?.source,
+        shortComment,
+        longComment,
+        source: hasMeaningfulComment ? injury.athlete?.notes?.items?.[0]?.source : undefined,
       });
     }
   }
@@ -129,7 +149,7 @@ const getCachedPlayerStatusFeed = unstable_cache(
       injuries: Array.from(normalizeInjuries(response).entries()),
     };
   },
-  ['nfl-player-status-v1'],
+  ['nfl-player-status-v3'],
   { revalidate: 300, tags: ['nfl-player-status'] },
 );
 

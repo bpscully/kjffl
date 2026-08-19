@@ -3,12 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { PlayerInjuryUpdate, PlayerUpdateResult, RosterPlayer } from '@/types';
+import { PlayerUpdateResult, RosterPlayer } from '@/types';
 import { cn } from '@/lib/utils';
 import {
   ArrowDownWideNarrow,
@@ -46,7 +41,7 @@ export function PlayerCard({
   onToggleStarter 
 }: PlayerCardProps) {
   const [imgError, setImgError] = useState(false);
-  const [expandedSection, setExpandedSection] = useState<'score' | 'news' | null>(null);
+  const [expandedSection, setExpandedSection] = useState<'score' | 'updates' | null>(null);
   const [referenceTime] = useState(() => Date.now());
   
   const isDST = player.pos === 'D/ST';
@@ -64,6 +59,7 @@ export function PlayerCard({
   const news = isDST ? [] : updates?.news ?? [];
   const injury = isDST ? null : updates?.injury ?? null;
   const hasNews = news.length > 0;
+  const hasUpdates = hasNews || Boolean(injury);
   const hasRecentNews = news.some((item) => {
     const publishedAt = Date.parse(item.publishedAt);
     return Number.isFinite(publishedAt)
@@ -71,7 +67,7 @@ export function PlayerCard({
       && referenceTime - publishedAt <= 48 * 60 * 60 * 1000;
   });
 
-  const toggleSection = (section: 'score' | 'news') => {
+  const toggleSection = (section: 'score' | 'updates') => {
     setExpandedSection((current) => current === section ? null : section);
   };
 
@@ -144,27 +140,38 @@ export function PlayerCard({
                             Bench
                         </span>
                     )}
-                    {hasNews && (
+                    {hasUpdates && (
                         <Button
                             variant="ghost"
-                            size="icon"
+                            size={injury ? 'sm' : 'icon'}
                             className={cn(
-                                "relative h-6 w-6 shrink-0",
-                                hasRecentNews
+                                "relative h-6 shrink-0 gap-1 px-1.5 text-[10px] font-bold",
+                                injury ? "border" : "w-6 px-0",
+                                injury
+                                  ? getInjuryColorClass(injury.designation)
+                                  : hasRecentNews
                                   ? "text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
                                   : "text-muted-foreground",
                             )}
-                            aria-label={hasRecentNews ? `Recent news for ${player.name}` : `News for ${player.name}`}
-                            aria-expanded={expandedSection === 'news'}
-                            onClick={() => toggleSection('news')}
+                            aria-label={injury
+                              ? `${injury.label} updates for ${player.name}`
+                              : hasRecentNews
+                                ? `Recent news for ${player.name}`
+                                : `News for ${player.name}`}
+                            aria-expanded={expandedSection === 'updates'}
+                            onClick={() => toggleSection('updates')}
                         >
-                            <Newspaper className="h-3.5 w-3.5" />
-                            {hasRecentNews && (
+                            {injury ? (
+                                <>
+                                    <BriefcaseMedical className="h-3.5 w-3.5" />
+                                    <span>{injury.designation.toUpperCase()}</span>
+                                </>
+                            ) : <Newspaper className="h-3.5 w-3.5" />}
+                            {!injury && hasRecentNews && (
                                 <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-amber-500 ring-1 ring-background" />
                             )}
                         </Button>
                     )}
-                    {injury && <InjuryIndicator playerName={player.name} injury={injury} referenceTime={referenceTime} />}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                     <p className="text-xs text-muted-foreground">{player.pos} • {player.team}</p>
@@ -236,13 +243,48 @@ export function PlayerCard({
             </div>
         )}
 
-        {expandedSection === 'news' && hasNews && (
+        {expandedSection === 'updates' && hasUpdates && (
             <div className="border-t bg-muted/20 animate-in fade-in slide-in-from-top-1 duration-200">
                 <div className="flex items-center justify-between border-b px-3 py-2">
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Player News</h4>
-                    <span className="text-[10px] text-muted-foreground">{news.length} {news.length === 1 ? 'update' : 'updates'}</span>
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Player Updates</h4>
+                    <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="Close player updates"
+                        onClick={() => setExpandedSection(null)}
+                    >
+                        <ChevronUp className="h-3 w-3" />
+                    </Button>
                 </div>
-                <div className="max-h-64 divide-y overflow-y-auto">
+                <div className="max-h-80 divide-y overflow-y-auto">
+                    {injury && (
+                        <section className="space-y-2 px-3 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <BriefcaseMedical className="h-3.5 w-3.5" />
+                                    <h5 className="text-xs font-bold capitalize">{injury.label}</h5>
+                                </div>
+                                <span className={cn(
+                                    "rounded border px-1.5 py-0.5 text-[10px] font-bold",
+                                    getInjuryColorClass(injury.designation),
+                                )}>
+                                    {injury.designation.toUpperCase()}
+                                </span>
+                            </div>
+                            <time dateTime={injury.updatedAt} className="block text-[10px] text-muted-foreground">
+                                Updated {formatRelativeTime(injury.updatedAt, referenceTime)}
+                            </time>
+                            {!hasNews && injury.shortComment && (
+                                <p className="text-xs font-medium leading-relaxed">{injury.shortComment}</p>
+                            )}
+                            {!hasNews && injury.longComment && injury.longComment !== injury.shortComment && (
+                                <p className="text-xs leading-relaxed text-muted-foreground">{injury.longComment}</p>
+                            )}
+                            {!hasNews && injury.source && (
+                                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">{injury.source} injury update</p>
+                            )}
+                        </section>
+                    )}
                     {news.map((item) => (
                         <article key={item.id} className="space-y-1 px-3 py-3">
                             <div className="flex items-start justify-between gap-3">
@@ -281,55 +323,12 @@ function formatRelativeTime(value: string, referenceTime: number): string {
   return formatter.format(Math.round(hours / 24), 'day');
 }
 
-function InjuryIndicator({
-  playerName,
-  injury,
-  referenceTime,
-}: {
-  playerName: string;
-  injury: PlayerInjuryUpdate;
-  referenceTime: number;
-}) {
-  const designation = injury.designation.toUpperCase();
-  const colorClass = {
+function getInjuryColorClass(designation: string): string {
+  return {
     Q: 'border-amber-500/40 bg-amber-500/10 text-amber-700',
     D: 'border-orange-500/40 bg-orange-500/10 text-orange-700',
     O: 'border-red-500/40 bg-red-500/10 text-red-700',
     IR: 'border-red-500/40 bg-red-500/10 text-red-700',
     SUSP: 'border-purple-500/40 bg-purple-500/10 text-purple-700',
-  }[designation] ?? 'border-border bg-muted text-muted-foreground';
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn("h-6 shrink-0 gap-1 border px-1.5 text-[10px] font-bold", colorClass)}
-          aria-label={`${injury.label} for ${playerName}`}
-        >
-          <BriefcaseMedical className="h-3 w-3" />
-          <span>{designation}</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-80 space-y-3">
-        <div>
-          <div className="flex items-center justify-between gap-3">
-            <h4 className="text-sm font-bold capitalize">{injury.label}</h4>
-            <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-bold", colorClass)}>
-              {designation}
-            </span>
-          </div>
-          <time dateTime={injury.updatedAt} className="text-[10px] text-muted-foreground">
-            Updated {formatRelativeTime(injury.updatedAt, referenceTime)}
-          </time>
-        </div>
-        {injury.shortComment && <p className="text-xs font-medium leading-relaxed">{injury.shortComment}</p>}
-        {injury.longComment && injury.longComment !== injury.shortComment && (
-          <p className="text-xs leading-relaxed text-muted-foreground">{injury.longComment}</p>
-        )}
-        {injury.source && <p className="text-[10px] text-muted-foreground">Source: {injury.source}</p>}
-      </PopoverContent>
-    </Popover>
-  );
+  }[designation.toUpperCase()] ?? 'border-border bg-muted text-muted-foreground';
 }
