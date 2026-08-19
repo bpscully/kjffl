@@ -41,6 +41,8 @@ KJ's FFL Scores is a web application for tracking fantasy football scores. It al
 The main application code is located in the `app/` directory.
     *   The display will include the player's opponent and the game's status (e.g., live, final, upcoming, bye week).
 
+Draft research, ESPN replay methodology, historical draft analysis, and handoff context are under `research/`. Read `research/RESEARCH_CONTEXT.md` before resuming research or player analysis.
+
 4.  **Design & UX**:
     *   The UI will be clean, modern, minimalist, and responsive, inspired by the ESPN fantasy app.
     *   Verbose details will be available in expandable components to keep the main view uncluttered.
@@ -78,4 +80,3 @@ The main application code is located in the `app/` directory.
 
 ## Implementation Plan
 A detailed phased implementation plan is maintained in [TODO.md](./TODO.md). Please refer to this file for the current status and next steps.
-
