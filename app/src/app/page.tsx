@@ -167,8 +167,6 @@ export default function Home() {
         </div>
       </header>
 
-      <UpsetSpecialPicker season={season} seasonType={seasonType} week={week} />
-
       <section className="bg-card border rounded-xl p-6 shadow-sm">
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Add to Roster</h2>
         <div className="flex w-full">
@@ -212,6 +210,8 @@ export default function Home() {
             </div>
           )}
         </section>
+
+        <UpsetSpecialPicker season={season} seasonType={seasonType} week={week} />
 
         {bench.length > 0 && (
             <section>
