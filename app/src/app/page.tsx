@@ -6,7 +6,10 @@ import { usePlayerUpdates } from '@/hooks/use-player-updates';
 import { PlayerSearch } from '@/components/features/player-search';
 import { PlayerCard } from '@/components/features/player-card';
 import { UpsetSpecialPicker } from '@/components/features/upset-special-picker';
+import { WeeklyScoreSection, WeeklyScoreSummary } from '@/components/features/weekly-score-summary';
 import { PlayerScoreResult } from '@/lib/scoring-engine';
+import { useUpsetSpecialPick } from '@/hooks/use-upset-special-pick';
+import { useUpsetSpecialScore } from '@/hooks/use-upset-special-score';
 import { getDefaultNflWeek, getSeasonOptions } from '@/lib/nfl-week';
 import { RosterPlayer } from '@/types';
 import { RefreshCw } from 'lucide-react';
@@ -23,6 +26,14 @@ export default function Home() {
   
   const [scores, setScores] = useState<Record<string, PlayerScoreResult>>({});
   const [isLoadingScores, setIsLoadingScores] = useState(false);
+  const { pick: upsetPick, updatePick: updateUpsetPick } = useUpsetSpecialPick(season, seasonType, week);
+  const {
+    score: upsetScore,
+    error: upsetError,
+    isScoring: isScoringUpset,
+    refreshScore: refreshUpsetScore,
+  } = useUpsetSpecialScore(season, seasonType, week, upsetPick);
+  const [upsetPickLabel, setUpsetPickLabel] = useState('No pick');
 
   const fetchScores = useCallback(async () => {
     setIsLoadingScores(true);
@@ -73,7 +84,7 @@ export default function Home() {
   };
 
   const refreshAll = () => {
-    void Promise.all([fetchScores(), fetchUpdates()]);
+    void Promise.all([fetchScores(), fetchUpdates(), refreshUpsetScore()]);
   };
 
   const positionOrder: Record<string, number> = {
@@ -97,6 +108,32 @@ export default function Home() {
 
   const starterTotal = starters.reduce((sum, p) => sum + (scores[p.id]?.totalPoints || 0), 0);
   const benchTotal = bench.reduce((sum, p) => sum + (scores[p.id]?.totalPoints || 0), 0);
+  const hasValidUpsetPick = Boolean(upsetPick.pickedTeamId)
+    && Number.isFinite(Number(upsetPick.spread))
+    && Number(upsetPick.spread) > 0;
+  const isRefreshing = isLoadingScores || isLoadingUpdates || isScoringUpset;
+  const weeklyScoreSections: WeeklyScoreSection[] = [
+    {
+      id: 'starting-lineup',
+      label: 'Starting Lineup',
+      points: starterTotal,
+      lines: starters.map((player) => ({
+        id: player.id,
+        label: player.name,
+        points: scores[player.id]?.totalPoints || 0,
+      })),
+    },
+    {
+      id: 'upset-special',
+      label: 'Upset Special',
+      points: upsetScore?.totalPoints || 0,
+      lines: [{
+        id: 'upset-pick',
+        label: upsetPickLabel,
+        points: upsetScore?.totalPoints || 0,
+      }],
+    },
+  ];
 
   if (!isLoaded) return <div className="p-8 flex justify-center italic text-muted-foreground">Loading roster...</div>;
 
@@ -118,8 +155,8 @@ export default function Home() {
                     variant="outline" 
                     size="icon" 
                     onClick={refreshAll}
-                    disabled={isLoadingScores || isLoadingUpdates || roster.length === 0}
-                    className={isLoadingScores || isLoadingUpdates ? "animate-spin" : ""}
+                    disabled={isRefreshing || (roster.length === 0 && !hasValidUpsetPick)}
+                    className={isRefreshing ? "animate-spin" : ""}
                     aria-label="Refresh scores and player updates"
                 >
                     <RefreshCw className="h-4 w-4" />
@@ -155,7 +192,7 @@ export default function Home() {
                 >
                     &lt;
                 </button>
-                <span className="text-sm font-bold min-w-[60px] text-center">Week {week}</span>
+                <span className="text-sm font-medium min-w-[60px] text-center">Week {week}</span>
                 <button 
                     onClick={() => setWeek(Math.min(18, week + 1))}
                     disabled={week >= 18}
@@ -165,6 +202,13 @@ export default function Home() {
                 </button>
             </div>
         </div>
+
+        <WeeklyScoreSummary
+          season={season}
+          seasonType={seasonType}
+          week={week}
+          sections={weeklyScoreSections}
+        />
       </header>
 
       <section className="bg-card border rounded-xl p-6 shadow-sm">
@@ -211,7 +255,17 @@ export default function Home() {
           )}
         </section>
 
-        <UpsetSpecialPicker season={season} seasonType={seasonType} week={week} />
+        <UpsetSpecialPicker
+          season={season}
+          seasonType={seasonType}
+          week={week}
+          pick={upsetPick}
+          updatePick={updateUpsetPick}
+          score={upsetScore}
+          error={upsetError}
+          isScoring={isScoringUpset}
+          onPickLabelChange={setUpsetPickLabel}
+        />
 
         {bench.length > 0 && (
             <section>

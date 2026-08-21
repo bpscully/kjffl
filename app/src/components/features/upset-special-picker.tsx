@@ -2,10 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScoringDetail, UpsetSpecialScoreResult } from '@/lib/scoring-engine';
-import { useUpsetSpecialPick } from '@/hooks/use-upset-special-pick';
+import { UpsetSpecialPick } from '@/hooks/use-upset-special-pick';
 
 interface WeekTeam {
   id: string;
@@ -24,15 +23,28 @@ interface UpsetSpecialPickerProps {
   season: number;
   seasonType: number;
   week: number;
+  pick: UpsetSpecialPick;
+  updatePick: (updates: Partial<UpsetSpecialPick>) => void;
+  score: UpsetSpecialScoreResult | null;
+  error: string;
+  isScoring: boolean;
+  onPickLabelChange: (label: string) => void;
 }
 
-export function UpsetSpecialPicker({ season, seasonType, week }: UpsetSpecialPickerProps) {
-  const { pick, updatePick } = useUpsetSpecialPick(season, seasonType, week);
+export function UpsetSpecialPicker({
+  season,
+  seasonType,
+  week,
+  pick,
+  updatePick,
+  score,
+  error,
+  isScoring,
+  onPickLabelChange,
+}: UpsetSpecialPickerProps) {
   const [matchups, setMatchups] = useState<WeekMatchup[]>([]);
-  const [score, setScore] = useState<UpsetSpecialScoreResult | null>(null);
-  const [error, setError] = useState('');
+  const [matchupError, setMatchupError] = useState('');
   const [isLoadingTeams, setIsLoadingTeams] = useState(false);
-  const [isScoring, setIsScoring] = useState(false);
 
   const teams = useMemo(() => {
     return matchups.flatMap((matchup) => matchup.teams.map((team) => ({
@@ -43,11 +55,10 @@ export function UpsetSpecialPicker({ season, seasonType, week }: UpsetSpecialPic
 
   const selectedTeam = teams.find((team) => team.id === pick.pickedTeamId);
   const spreadNumber = Number(pick.spread);
-  const canScore = Boolean(pick.pickedTeamId) && Number.isFinite(spreadNumber) && spreadNumber > 0;
 
   const fetchWeekEvents = useCallback(async () => {
     setIsLoadingTeams(true);
-    setError('');
+    setMatchupError('');
     try {
       const params = new URLSearchParams({
         season: String(season),
@@ -63,7 +74,7 @@ export function UpsetSpecialPicker({ season, seasonType, week }: UpsetSpecialPic
       const data = await response.json();
       setMatchups(data.matchups || []);
     } catch (err) {
-      setError((err as Error).message || 'Failed to load matchups');
+      setMatchupError((err as Error).message || 'Failed to load matchups');
     } finally {
       setIsLoadingTeams(false);
     }
@@ -71,46 +82,14 @@ export function UpsetSpecialPicker({ season, seasonType, week }: UpsetSpecialPic
 
   useEffect(() => {
     fetchWeekEvents();
-    setScore(null);
   }, [fetchWeekEvents]);
 
   useEffect(() => {
-    setScore(null);
-    setError('');
-  }, [pick.pickedTeamId, pick.spread]);
-
-  const scorePick = async () => {
-    if (!canScore) return;
-
-    setIsScoring(true);
-    setError('');
-    try {
-      const response = await fetch('/api/upset-special', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          season,
-          seasonType,
-          week,
-          pickedTeamId: pick.pickedTeamId,
-          spread: spreadNumber,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || `Server returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      setScore(data.result);
-    } catch (err) {
-      setError((err as Error).message || 'Failed to score pick');
-      setScore(null);
-    } finally {
-      setIsScoring(false);
-    }
-  };
+    const formattedSpread = Number.isFinite(spreadNumber) && spreadNumber > 0
+      ? ` +${spreadNumber}`
+      : '';
+    onPickLabelChange(selectedTeam ? `${selectedTeam.abbreviation}${formattedSpread}` : 'No pick');
+  }, [onPickLabelChange, selectedTeam, spreadNumber]);
 
   const renderDetails = (details: ScoringDetail[]) => {
     if (details.length === 0) {
@@ -128,10 +107,10 @@ export function UpsetSpecialPicker({ season, seasonType, week }: UpsetSpecialPic
   const renderScore = (result: UpsetSpecialScoreResult) => {
     if (!result.isFinal) {
       return (
-        <span className="text-xs text-muted-foreground">
-          <span className="font-semibold text-yellow-600 dark:text-yellow-400">{result.gameStatus}</span>
-          {'. '}Upset points will be awarded after the game is final.
-        </span>
+        <div className="text-xs text-muted-foreground">
+          <div className="font-semibold text-yellow-600 dark:text-yellow-400">{result.gameStatus}</div>
+          <div>Upset points will be awarded after the game is final.</div>
+        </div>
       );
     }
 
@@ -152,7 +131,7 @@ export function UpsetSpecialPicker({ season, seasonType, week }: UpsetSpecialPic
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-[1fr_96px_auto]">
+      <div className="grid gap-3 sm:grid-cols-[1fr_112px]">
         <select
           value={pick.pickedTeamId}
           onChange={(event) => updatePick({ pickedTeamId: event.target.value })}
@@ -176,22 +155,19 @@ export function UpsetSpecialPicker({ season, seasonType, week }: UpsetSpecialPic
           value={pick.spread}
           onChange={(event) => updatePick({ spread: event.target.value })}
         />
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={scorePick}
-          disabled={!canScore || isScoring || isLoadingTeams}
-          className="sm:w-24"
-        >
-          {isScoring ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Score'}
-        </Button>
       </div>
 
-      {(score || error) && (
+      {isScoring && (
+        <div className="mt-4 flex items-center gap-2 border-t pt-3 text-xs text-muted-foreground">
+          <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+          Updating upset score...
+        </div>
+      )}
+
+      {!isScoring && (score || error || matchupError) && (
         <div className="mt-4 border-t pt-3 space-y-2">
-          {error ? (
-            <div className="text-xs text-destructive">{error}</div>
+          {error || matchupError ? (
+            <div className="text-xs text-destructive">{error || matchupError}</div>
           ) : (
             score ? renderScore(score) : null
           )}
