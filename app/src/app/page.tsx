@@ -6,10 +6,14 @@ import { usePlayerUpdates } from '@/hooks/use-player-updates';
 import { PlayerSearch } from '@/components/features/player-search';
 import { PlayerCard } from '@/components/features/player-card';
 import { UpsetSpecialPicker } from '@/components/features/upset-special-picker';
+import { OverUnderPicker } from '@/components/features/over-under-picker';
 import { WeeklyScoreSection, WeeklyScoreSummary } from '@/components/features/weekly-score-summary';
 import { PlayerScoreResult } from '@/lib/scoring-engine';
 import { useUpsetSpecialPick } from '@/hooks/use-upset-special-pick';
 import { useUpsetSpecialScore } from '@/hooks/use-upset-special-score';
+import { useOverUnderPick } from '@/hooks/use-over-under-pick';
+import { useOverUnderScore } from '@/hooks/use-over-under-score';
+import { useWeekMatchups } from '@/hooks/use-week-matchups';
 import { getDefaultNflWeek, getSeasonOptions } from '@/lib/nfl-week';
 import { RosterPlayer } from '@/types';
 import { RefreshCw } from 'lucide-react';
@@ -23,6 +27,11 @@ export default function Home() {
   const [season, setSeason] = useState(defaultNflWeek.season);
   const [week, setWeek] = useState(defaultNflWeek.week);
   const [seasonType, setSeasonType] = useState(2); // 2 = Regular, 3 = Post
+  const {
+    matchups,
+    error: matchupError,
+    isLoading: isLoadingMatchups,
+  } = useWeekMatchups(season, seasonType, week);
   
   const [scores, setScores] = useState<Record<string, PlayerScoreResult>>({});
   const [isLoadingScores, setIsLoadingScores] = useState(false);
@@ -34,6 +43,15 @@ export default function Home() {
     refreshScore: refreshUpsetScore,
   } = useUpsetSpecialScore(season, seasonType, week, upsetPick);
   const [upsetPickLabel, setUpsetPickLabel] = useState('No pick');
+  const { pick: overUnderPick, updatePick: updateOverUnderPick } = useOverUnderPick(season, seasonType, week);
+  const {
+    score: overUnderScore,
+    error: overUnderError,
+    isScoring: isScoringOverUnder,
+    refreshScore: refreshOverUnderScore,
+    canScore: hasValidOverUnderPick,
+  } = useOverUnderScore(season, seasonType, week, overUnderPick);
+  const [overUnderPickLabel, setOverUnderPickLabel] = useState('No pick');
 
   const fetchScores = useCallback(async () => {
     setIsLoadingScores(true);
@@ -84,7 +102,7 @@ export default function Home() {
   };
 
   const refreshAll = () => {
-    void Promise.all([fetchScores(), fetchUpdates(), refreshUpsetScore()]);
+    void Promise.all([fetchScores(), fetchUpdates(), refreshUpsetScore(), refreshOverUnderScore()]);
   };
 
   const positionOrder: Record<string, number> = {
@@ -111,7 +129,7 @@ export default function Home() {
   const hasValidUpsetPick = Boolean(upsetPick.pickedTeamId)
     && Number.isFinite(Number(upsetPick.spread))
     && Number(upsetPick.spread) > 0;
-  const isRefreshing = isLoadingScores || isLoadingUpdates || isScoringUpset;
+  const isRefreshing = isLoadingScores || isLoadingUpdates || isScoringUpset || isScoringOverUnder;
   const weeklyScoreSections: WeeklyScoreSection[] = [
     {
       id: 'starting-lineup',
@@ -131,6 +149,16 @@ export default function Home() {
         id: 'upset-pick',
         label: upsetPickLabel,
         points: upsetScore?.totalPoints || 0,
+      }],
+    },
+    {
+      id: 'over-under',
+      label: 'Over / Under',
+      points: overUnderScore?.totalPoints || 0,
+      lines: [{
+        id: 'over-under-pick',
+        label: overUnderPickLabel,
+        points: overUnderScore?.totalPoints || 0,
       }],
     },
   ];
@@ -155,7 +183,7 @@ export default function Home() {
                     variant="outline" 
                     size="icon" 
                     onClick={refreshAll}
-                    disabled={isRefreshing || (roster.length === 0 && !hasValidUpsetPick)}
+                    disabled={isRefreshing || (roster.length === 0 && !hasValidUpsetPick && !hasValidOverUnderPick)}
                     className={isRefreshing ? "animate-spin" : ""}
                     aria-label="Refresh scores and player updates"
                 >
@@ -256,15 +284,27 @@ export default function Home() {
         </section>
 
         <UpsetSpecialPicker
-          season={season}
-          seasonType={seasonType}
-          week={week}
+          matchups={matchups}
+          matchupError={matchupError}
+          isLoadingMatchups={isLoadingMatchups}
           pick={upsetPick}
           updatePick={updateUpsetPick}
           score={upsetScore}
           error={upsetError}
           isScoring={isScoringUpset}
           onPickLabelChange={setUpsetPickLabel}
+        />
+
+        <OverUnderPicker
+          matchups={matchups}
+          matchupError={matchupError}
+          isLoadingMatchups={isLoadingMatchups}
+          pick={overUnderPick}
+          updatePick={updateOverUnderPick}
+          score={overUnderScore}
+          error={overUnderError}
+          isScoring={isScoringOverUnder}
+          onPickLabelChange={setOverUnderPickLabel}
         />
 
         {bench.length > 0 && (

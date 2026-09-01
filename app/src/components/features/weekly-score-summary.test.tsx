@@ -19,6 +19,12 @@ const sections = [
     points: 4,
     lines: [{ id: 'upset-pick', label: 'TB +3.5', points: 4 }],
   },
+  {
+    id: 'over-under',
+    label: 'Over / Under',
+    points: 2,
+    lines: [{ id: 'over-under-pick', label: 'TB @ CIN — Over 40', points: 2 }],
+  },
 ];
 
 describe('WeeklyScoreSummary', () => {
@@ -39,7 +45,7 @@ describe('WeeklyScoreSummary', () => {
 
     const toggle = screen.getByRole('button', { name: /week 4 total/i });
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByText('14.50 pts')).toBeInTheDocument();
+    expect(screen.getByText('16.50 pts')).toBeInTheDocument();
     expect(screen.queryByText('Matthew Stafford')).not.toBeInTheDocument();
 
     fireEvent.click(toggle);
@@ -48,6 +54,7 @@ describe('WeeklyScoreSummary', () => {
     expect(screen.getByText('Matthew Stafford')).toBeInTheDocument();
     expect(screen.getByText('Zero Point Starter')).toBeInTheDocument();
     expect(screen.getByText('TB +3.5')).toBeInTheDocument();
+    expect(screen.getByText('TB @ CIN — Over 40')).toBeInTheDocument();
   });
 
   it('copies the selected week, section totals, attribution, and grand total', async () => {
@@ -67,7 +74,9 @@ describe('WeeklyScoreSummary', () => {
       'Zero Point Starter — 0.00 pts\n\n' +
       'Upset Special — 4.00 pts\n' +
       'TB +3.5 — 4.00 pts\n\n' +
-      'Week Total — 14.50 pts',
+      'Over / Under — 2.00 pts\n' +
+      'TB @ CIN — Over 40 — 2.00 pts\n\n' +
+      'Week Total — 16.50 pts',
     );
     expect(await screen.findByText('Score report copied')).toBeInTheDocument();
   });

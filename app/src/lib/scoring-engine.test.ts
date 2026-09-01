@@ -470,4 +470,116 @@ describe('ScoringEngine', () => {
       expect(result.gameStatus).toBe('Mon, Sep 14, 5:15 PM PDT');
     }
   });
+
+  it.each([
+    ['over', 24, 20, 40, 2, 'win', 'Over hit: 44 total vs 40'],
+    ['under', 17, 20, 40, 2, 'win', 'Under hit: 37 total vs 40'],
+    ['over', 17, 20, 40, 0, 'loss', 'Over missed: 37 total vs 40'],
+    ['under', 24, 20, 40, 0, 'loss', 'Under missed: 44 total vs 40'],
+  ] as const)(
+    'scores a final game-total %s call',
+    (call, firstScore, secondScore, line, points, outcome, reason) => {
+      const summary = makeGameSummary('over-under', [
+        { id: '1', score: String(firstScore), winner: firstScore > secondScore },
+        { id: '2', score: String(secondScore), winner: secondScore > firstScore },
+      ]);
+
+      const result = ScoringEngine.calculateOverUnderScore({
+        summary,
+        line,
+        mode: 'game-total',
+        call,
+      });
+
+      expect(result.totalPoints).toBe(points);
+      expect(result.outcome).toBe(outcome);
+      expect(result.actualTotal).toBe(firstScore + secondScore);
+      expect(result.details).toEqual([{ reason, points }]);
+    },
+  );
+
+  it('scores an exact game-total line as a zero-point push', () => {
+    const summary = makeGameSummary('push', [
+      { id: '1', score: '23', winner: true },
+      { id: '2', score: '17', winner: false },
+    ]);
+
+    const result = ScoringEngine.calculateOverUnderScore({
+      summary,
+      line: 40,
+      mode: 'game-total',
+      call: 'over',
+    });
+
+    expect(result.totalPoints).toBe(0);
+    expect(result.outcome).toBe('push');
+    expect(result.details).toEqual([{ reason: 'Push: 40 total vs 40', points: 0 }]);
+  });
+
+  it('does not treat a half-point line as a push', () => {
+    const summary = makeGameSummary('half-point', [
+      { id: '1', score: '23', winner: true },
+      { id: '2', score: '17', winner: false },
+    ]);
+
+    const result = ScoringEngine.calculateOverUnderScore({
+      summary,
+      line: 40.5,
+      mode: 'game-total',
+      call: 'under',
+    });
+
+    expect(result.totalPoints).toBe(2);
+    expect(result.outcome).toBe('win');
+  });
+
+  it.each([
+    [41, 4, 'ARI scored 41 (over 40)'],
+    [40, 3, 'ARI scored 40 (31-40 range)'],
+    [31, 3, 'ARI scored 31 (31-40 range)'],
+    [30, 0, 'ARI scored 30 (needed 31+)'],
+  ])('scores the one-team option when the team scores %i', (teamScore, points, reason) => {
+    const summary = makeGameSummary('one-team', [
+      { id: '22', score: String(teamScore), winner: teamScore > 20, team: { abbreviation: 'ARI' } },
+      { id: '24', score: '20', winner: teamScore < 20, team: { abbreviation: 'LAC' } },
+    ]);
+
+    const result = ScoringEngine.calculateOverUnderScore({
+      summary,
+      line: 40,
+      mode: 'one-team',
+      pickedTeamId: '22',
+    });
+
+    expect(result.totalPoints).toBe(points);
+    expect(result.outcome).toBe(points > 0 ? 'win' : 'loss');
+    expect(result.pickedTeamScore).toBe(teamScore);
+    expect(result.details).toEqual([{ reason, points }]);
+  });
+
+  it('does not award over/under points before the game is final', () => {
+    const summary = makeGameSummary('scheduled', [
+      { id: '1', score: '0', winner: false },
+      { id: '2', score: '0', winner: false },
+    ]);
+    summary.header.competitions[0].status.type = {
+      name: 'STATUS_SCHEDULED',
+      description: 'Scheduled',
+      detail: 'Sun, 1:00 PM',
+      completed: false,
+    };
+    summary.header.competitions[0].date = '2026-09-15T00:15:00Z';
+
+    const result = ScoringEngine.calculateOverUnderScore({
+      summary,
+      line: 40,
+      mode: 'game-total',
+      call: 'over',
+    });
+
+    expect(result.totalPoints).toBe(0);
+    expect(result.details).toEqual([]);
+    expect(result.isFinal).toBe(false);
+    expect(result.outcome).toBe('pending');
+  });
 });

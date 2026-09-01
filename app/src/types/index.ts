@@ -34,3 +34,16 @@ export interface PlayerUpdateResult {
   injury: PlayerInjuryUpdate | null;
   errors?: Array<'news' | 'injury'>;
 }
+
+export interface WeekTeam {
+  id: string;
+  abbreviation: string;
+  name: string;
+}
+
+export interface WeekMatchup {
+  eventId: string;
+  name: string;
+  shortName: string;
+  teams: WeekTeam[];
+}

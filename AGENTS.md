@@ -13,22 +13,22 @@ The active application lives in `app/` and uses Next.js App Router, React, TypeS
 - Player cards show custom scores, opponent, Pacific game date/time or status, scoring details, and recent player updates.
 - Player updates come from ESPN's league injuries/status feed. A true injury designation changes the card icon; other recent notes remain useful updates. Status-only comments are filtered, and stale notes older than one month are excluded.
 - Upset Special picks persist per season, season type, and week in `localStorage`. A valid pick scores automatically on load, after a team/spread change, and on the main refresh action. Points are awarded only after the game is final.
-- The weekly total includes Starting Lineup and Upset Special points, excludes Bench points, and expands to a concise copyable audit.
-- Over/Under scoring rules exist, but the Over/Under product flow and its contribution to the weekly total have not been implemented yet.
+- The weekly total includes Starting Lineup, Upset Special, and Over/Under points, excludes Bench points, and expands to a concise copyable audit.
+- Over/Under picks persist per season, season type, and week in `localStorage`. A user can make either a game-total Over/Under call or a one-team scoring pick, with a manually entered line. Points score automatically only after the game is final and contribute to the weekly total.
 
 ## Architecture and data flow
 
 - `app/src/app/page.tsx` owns the selected season/week, player score results, and weekly score aggregation.
 - `app/src/components/features/` contains the player search/cards, Upset Special editor, and weekly score summary.
 - `app/src/hooks/` contains browser-persisted roster/pick state and client-side score/update fetching.
-- `app/src/app/api/` is the backend-for-frontend layer over ESPN. Routes cover player search, player scores, player updates, weekly events, and Upset Special scoring.
+- `app/src/app/api/` is the backend-for-frontend layer over ESPN. Routes cover player search, player scores, player updates, weekly events, Upset Special scoring, and Over/Under scoring.
 - `app/src/lib/espn-api.ts` centralizes ESPN requests and uses `fetchWithRetry`.
 - `app/src/lib/player-service.ts` caches the player index for 24 hours with Next.js `unstable_cache`.
 - `app/src/lib/player-updates-service.ts` normalizes and caches the ESPN status feed for five minutes.
 - `app/src/lib/scoring-engine.ts` converts ESPN game summaries into itemized score results.
 - `app/lib/scoring_rules.ts` is the executable authority for KJFFL point values. Preserve its distinction from conventional fantasy scoring.
 
-Player scores and Upset Special scores use separate API endpoints because their formulas and inputs differ, but both are page-level weekly scoring entries. The weekly summary accepts generic scoring sections so Over/Under can be added later without redesigning it.
+Player, Upset Special, and Over/Under scores use separate API endpoints because their formulas and inputs differ, but all are page-level weekly scoring entries. The weekly summary accepts generic scoring sections so future score categories can be added without redesigning it.
 
 ## Development commands
 

@@ -99,11 +99,135 @@ export interface UpsetSpecialScoreResult {
   isFinal: boolean;
 }
 
+export type OverUnderMode = 'game-total' | 'one-team';
+export type OverUnderCall = 'over' | 'under';
+export type OverUnderOutcome = 'pending' | 'win' | 'loss' | 'push';
+
+export type OverUnderInput = {
+  summary: EspnSummary;
+  line: number;
+} & (
+  | { mode: 'game-total'; call: OverUnderCall }
+  | { mode: 'one-team'; pickedTeamId: string }
+);
+
+export interface OverUnderScoreResult {
+  mode: OverUnderMode;
+  line: number;
+  call?: OverUnderCall;
+  pickedTeamId?: string;
+  totalPoints: number;
+  details: ScoringDetail[];
+  gameStatus: string;
+  gameStatusType: string;
+  isFinal: boolean;
+  outcome: OverUnderOutcome;
+  actualTotal?: number;
+  pickedTeamScore?: number;
+}
+
 /**
  * SCORING ENGINE
  */
 
 export class ScoringEngine {
+  static calculateOverUnderScore(input: OverUnderInput): OverUnderScoreResult {
+    const details: ScoringDetail[] = [];
+    const competition = input.summary.header.competitions[0];
+    const gameStatusType = competition.status?.type?.name || 'STATUS_UNKNOWN';
+    const gameStatus = getCompetitionStatus(competition);
+    const isFinal = competition.status?.type?.completed === true || gameStatusType === 'STATUS_FINAL';
+    const baseResult = {
+      mode: input.mode,
+      line: input.line,
+      totalPoints: 0,
+      details,
+      gameStatus,
+      gameStatusType,
+      isFinal,
+    };
+
+    if (!isFinal) {
+      return {
+        ...baseResult,
+        ...(input.mode === 'game-total' ? { call: input.call } : { pickedTeamId: input.pickedTeamId }),
+        outcome: 'pending',
+      };
+    }
+
+    if (input.mode === 'game-total') {
+      const actualTotal = competition.competitors.reduce(
+        (sum, competitor) => sum + parseInt(competitor.score || '0'),
+        0,
+      );
+
+      if (actualTotal === input.line) {
+        details.push({ reason: `Push: ${actualTotal} total vs ${input.line}`, points: 0 });
+        return {
+          ...baseResult,
+          call: input.call,
+          outcome: 'push',
+          actualTotal,
+        };
+      }
+
+      const callWon = input.call === 'over'
+        ? actualTotal > input.line
+        : actualTotal < input.line;
+      const callLabel = input.call === 'over' ? 'Over' : 'Under';
+      const points = callWon ? scoringRules.overUnder.correctCall : 0;
+      details.push({
+        reason: `${callLabel} ${callWon ? 'hit' : 'missed'}: ${actualTotal} total vs ${input.line}`,
+        points,
+      });
+
+      return {
+        ...baseResult,
+        call: input.call,
+        totalPoints: points,
+        outcome: callWon ? 'win' : 'loss',
+        actualTotal,
+      };
+    }
+
+    const pickedTeam = competition.competitors.find((competitor) => competitor.id === input.pickedTeamId);
+    if (!pickedTeam) {
+      details.push({ reason: 'Selected team was not found in this game', points: 0 });
+      return {
+        ...baseResult,
+        pickedTeamId: input.pickedTeamId,
+        outcome: 'loss',
+      };
+    }
+
+    const pickedTeamScore = parseInt(pickedTeam.score || '0');
+    const teamLabel = pickedTeam.team?.abbreviation || input.pickedTeamId;
+    let points = 0;
+    let reason: string;
+
+    if (pickedTeamScore > input.line) {
+      points = scoringRules.overUnder.oneTeamOver;
+      reason = `${teamLabel} scored ${pickedTeamScore} (over ${input.line})`;
+    } else if (pickedTeamScore > input.line - 10) {
+      points = scoringRules.overUnder.oneTeamMinus10;
+      const rangeMinimum = Math.floor(input.line - 10) + 1;
+      const rangeMaximum = Math.floor(input.line);
+      reason = `${teamLabel} scored ${pickedTeamScore} (${rangeMinimum}-${rangeMaximum} range)`;
+    } else {
+      const neededScore = Math.floor(input.line - 10) + 1;
+      reason = `${teamLabel} scored ${pickedTeamScore} (needed ${neededScore}+)`;
+    }
+    details.push({ reason, points });
+
+    return {
+      ...baseResult,
+      pickedTeamId: input.pickedTeamId,
+      totalPoints: points,
+      outcome: points > 0 ? 'win' : 'loss',
+      pickedTeamScore,
+    };
+  }
+
   static calculateUpsetSpecialScore(input: UpsetSpecialInput): UpsetSpecialScoreResult {
     const details: ScoringDetail[] = [];
     const competition = input.summary.header.competitions[0];

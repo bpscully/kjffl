@@ -1,28 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScoringDetail, UpsetSpecialScoreResult } from '@/lib/scoring-engine';
 import { UpsetSpecialPick } from '@/hooks/use-upset-special-pick';
-
-interface WeekTeam {
-  id: string;
-  abbreviation: string;
-  name: string;
-}
-
-interface WeekMatchup {
-  eventId: string;
-  name: string;
-  shortName: string;
-  teams: WeekTeam[];
-}
+import { WeekMatchup } from '@/types';
 
 interface UpsetSpecialPickerProps {
-  season: number;
-  seasonType: number;
-  week: number;
+  matchups: WeekMatchup[];
+  matchupError: string;
+  isLoadingMatchups: boolean;
   pick: UpsetSpecialPick;
   updatePick: (updates: Partial<UpsetSpecialPick>) => void;
   score: UpsetSpecialScoreResult | null;
@@ -32,9 +20,9 @@ interface UpsetSpecialPickerProps {
 }
 
 export function UpsetSpecialPicker({
-  season,
-  seasonType,
-  week,
+  matchups,
+  matchupError,
+  isLoadingMatchups,
   pick,
   updatePick,
   score,
@@ -42,10 +30,6 @@ export function UpsetSpecialPicker({
   isScoring,
   onPickLabelChange,
 }: UpsetSpecialPickerProps) {
-  const [matchups, setMatchups] = useState<WeekMatchup[]>([]);
-  const [matchupError, setMatchupError] = useState('');
-  const [isLoadingTeams, setIsLoadingTeams] = useState(false);
-
   const teams = useMemo(() => {
     return matchups.flatMap((matchup) => matchup.teams.map((team) => ({
       ...team,
@@ -55,34 +39,6 @@ export function UpsetSpecialPicker({
 
   const selectedTeam = teams.find((team) => team.id === pick.pickedTeamId);
   const spreadNumber = Number(pick.spread);
-
-  const fetchWeekEvents = useCallback(async () => {
-    setIsLoadingTeams(true);
-    setMatchupError('');
-    try {
-      const params = new URLSearchParams({
-        season: String(season),
-        seasonType: String(seasonType),
-        week: String(week),
-      });
-      const response = await fetch(`/api/week-events?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      setMatchups(data.matchups || []);
-    } catch (err) {
-      setMatchupError((err as Error).message || 'Failed to load matchups');
-    } finally {
-      setIsLoadingTeams(false);
-    }
-  }, [season, seasonType, week]);
-
-  useEffect(() => {
-    fetchWeekEvents();
-  }, [fetchWeekEvents]);
 
   useEffect(() => {
     const formattedSpread = Number.isFinite(spreadNumber) && spreadNumber > 0
@@ -135,10 +91,10 @@ export function UpsetSpecialPicker({
         <select
           value={pick.pickedTeamId}
           onChange={(event) => updatePick({ pickedTeamId: event.target.value })}
-          disabled={isLoadingTeams}
+          disabled={isLoadingMatchups}
           className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <option value="">{isLoadingTeams ? 'Loading teams...' : 'Underdog team'}</option>
+          <option value="">{isLoadingMatchups ? 'Loading teams...' : 'Underdog team'}</option>
           {teams.map((team) => (
             <option key={team.id} value={team.id}>
               {team.abbreviation} - {team.name}
