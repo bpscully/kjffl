@@ -7,6 +7,8 @@ import { PlayerUpdateResult, RosterPlayer } from '@/types';
 import { cn } from '@/lib/utils';
 import { formatPacificDateTime } from '@/lib/date-time';
 import {
+  ArrowDownWideNarrow,
+  ArrowUpWideNarrow,
   BriefcaseMedical,
   ChevronDown,
   ChevronUp,
@@ -90,8 +92,8 @@ export function PlayerCard({
             }}
         >
             {player.isStarter
-              ? <ChevronDown className="h-3 w-3" />
-              : <ChevronUp className="h-3 w-3" />}
+              ? <ArrowDownWideNarrow className="h-3 w-3" />
+              : <ArrowUpWideNarrow className="h-3 w-3" />}
             <span>{player.isStarter ? 'Sit' : 'Start'}</span>
         </Button>
         <Button 
