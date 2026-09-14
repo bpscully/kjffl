@@ -15,9 +15,17 @@ import { useOverUnderPick } from '@/hooks/use-over-under-pick';
 import { useOverUnderScore } from '@/hooks/use-over-under-score';
 import { useWeekMatchups } from '@/hooks/use-week-matchups';
 import { getDefaultNflWeek, getSeasonOptions } from '@/lib/nfl-week';
-import { RosterPlayer } from '@/types';
-import { RefreshCw } from 'lucide-react';
+import { Player, RosterPlayer } from '@/types';
+import { CircleAlert, CircleCheck, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+interface RosterFeedback {
+  kind: 'added' | 'duplicate';
+  playerId: string;
+  playerName: string;
+  rosterKey: string;
+}
 
 export default function Home() {
   const defaultNflWeek = getDefaultNflWeek();
@@ -25,6 +33,7 @@ export default function Home() {
   const [season, setSeason] = useState(defaultNflWeek.season);
   const [week, setWeek] = useState(defaultNflWeek.week);
   const [seasonType, setSeasonType] = useState(2); // 2 = Regular, 3 = Post
+  const [rosterFeedback, setRosterFeedback] = useState<RosterFeedback | null>(null);
   const { roster, addPlayer, removePlayer, clearRoster, toggleStarter, isLoaded } = useRoster(
     season,
     seasonType,
@@ -56,6 +65,14 @@ export default function Home() {
     canScore: hasValidOverUnderPick,
   } = useOverUnderScore(season, seasonType, week, overUnderPick);
   const [overUnderPickLabel, setOverUnderPickLabel] = useState('No pick');
+  const rosterKey = `${season}-${seasonType}-${week}`;
+  const visibleRosterFeedback = rosterFeedback?.rosterKey === rosterKey ? rosterFeedback : null;
+
+  useEffect(() => {
+    if (!rosterFeedback) return;
+    const timeoutId = window.setTimeout(() => setRosterFeedback(null), 6000);
+    return () => window.clearTimeout(timeoutId);
+  }, [rosterFeedback]);
 
   const fetchScores = useCallback(async () => {
     setIsLoadingScores(true);
@@ -108,6 +125,33 @@ export default function Home() {
 
   const refreshAll = () => {
     void Promise.all([fetchScores(), fetchUpdates(), refreshUpsetScore(), refreshOverUnderScore()]);
+  };
+
+  const handleAddPlayer = (player: Player) => {
+    if (roster.some((rosterPlayer) => rosterPlayer.id === player.id)) {
+      setRosterFeedback({
+        kind: 'duplicate',
+        playerId: player.id,
+        playerName: player.name,
+        rosterKey,
+      });
+      return;
+    }
+
+    addPlayer(player);
+    setRosterFeedback({
+      kind: 'added',
+      playerId: player.id,
+      playerName: player.name,
+      rosterKey,
+    });
+  };
+
+  const viewBenchPlayer = (playerId: string) => {
+    document.getElementById(`bench-player-${playerId}`)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
   };
 
   const positionOrder: Record<string, number> = {
@@ -247,8 +291,35 @@ export default function Home() {
       <section className="bg-card border rounded-xl p-6 shadow-sm">
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Add to Roster</h2>
         <div className="flex w-full">
-            <PlayerSearch onSelectPlayer={addPlayer} />
+            <PlayerSearch onSelectPlayer={handleAddPlayer} />
         </div>
+        {visibleRosterFeedback && (
+          <div className={cn(
+            "mt-3 flex items-center gap-2 rounded-md px-3 py-2 text-xs",
+            visibleRosterFeedback.kind === 'added'
+              ? "bg-green-500/10 text-green-700 dark:text-green-400"
+              : "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+          )}>
+            {visibleRosterFeedback.kind === 'added'
+              ? <CircleCheck className="h-4 w-4 shrink-0" />
+              : <CircleAlert className="h-4 w-4 shrink-0" />}
+            <span role="status" aria-live="polite" className="min-w-0 flex-1">
+              {visibleRosterFeedback.kind === 'added'
+                ? `${visibleRosterFeedback.playerName} added to Bench.`
+                : `${visibleRosterFeedback.playerName} is already on this week's roster.`}
+            </span>
+            {visibleRosterFeedback.kind === 'added' && (
+              <Button
+                variant="link"
+                size="xs"
+                className="h-auto p-0 text-current"
+                onClick={() => viewBenchPlayer(visibleRosterFeedback.playerId)}
+              >
+                View
+              </Button>
+            )}
+          </div>
+        )}
       </section>
 
       <div className="space-y-10">
@@ -265,7 +336,7 @@ export default function Home() {
           
           {starters.length === 0 ? (
             <div className="text-sm text-muted-foreground italic py-8 border-2 border-dashed rounded-xl text-center bg-muted/20">
-              No starters set. Search and add players.
+              No starters set. Search and add players or start from the bench
             </div>
           ) : (
             <div className="grid gap-3">
@@ -329,19 +400,29 @@ export default function Home() {
             ) : (
               <div className="grid gap-3 opacity-80 hover:opacity-100 transition-opacity">
                 {bench.map(player => (
-                  <PlayerCard 
-                    key={player.id} 
-                    player={player} 
-                    onRemove={removePlayer} 
-                    onToggleStarter={toggleStarter}
-                    score={scores[player.id]?.totalPoints}
-                    scoreDetails={scores[player.id]?.details}
-                    gameStatus={scores[player.id]?.gameStatus}
-                    gameStatusType={scores[player.id]?.gameStatusType}
-                    opponentAbbr={scores[player.id]?.opponentAbbr}
-                    loading={isLoadingScores}
-                    updates={updates[player.id]}
-                  />
+                  <div
+                    key={player.id}
+                    id={`bench-player-${player.id}`}
+                    className={cn(
+                      "scroll-mt-4 rounded-xl transition-shadow",
+                      visibleRosterFeedback?.kind === 'added'
+                        && visibleRosterFeedback.playerId === player.id
+                        && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
+                    )}
+                  >
+                    <PlayerCard
+                      player={player}
+                      onRemove={removePlayer}
+                      onToggleStarter={toggleStarter}
+                      score={scores[player.id]?.totalPoints}
+                      scoreDetails={scores[player.id]?.details}
+                      gameStatus={scores[player.id]?.gameStatus}
+                      gameStatusType={scores[player.id]?.gameStatusType}
+                      opponentAbbr={scores[player.id]?.opponentAbbr}
+                      loading={isLoadingScores}
+                      updates={updates[player.id]}
+                    />
+                  </div>
                 ))}
               </div>
             )}
