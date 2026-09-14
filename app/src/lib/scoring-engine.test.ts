@@ -179,6 +179,18 @@ describe('ScoringEngine', () => {
     expect(result.details).toContainEqual({ reason: 'Held Opponent < 10 Pts (Win)', points: 3 });
   });
 
+  it('should not award D/ST hold points when allowing fewer than 10 points in a loss', () => {
+    const underTenLossSummary = makeGameSummary('under-ten-loss', [
+      { id: '12', score: '3', winner: false },
+      { id: '7', score: '7', winner: true },
+    ]);
+
+    const result = ScoringEngine.calculatePlayerScore('12', underTenLossSummary, 'D/ST');
+
+    expect(result.totalPoints).toBe(0);
+    expect(result.details).toEqual([]);
+  });
+
   it('should award D/ST points for holding an opponent to exactly 10 points', () => {
     const exactlyTenSummary = makeGameSummary('exactly-ten', [
       { id: '12', score: '24', winner: true },
@@ -188,7 +200,19 @@ describe('ScoringEngine', () => {
     const result = ScoringEngine.calculatePlayerScore('12', exactlyTenSummary, 'D/ST');
 
     expect(result.totalPoints).toBe(2);
-    expect(result.details).toContainEqual({ reason: 'Held Opponent to 10 Pts', points: 2 });
+    expect(result.details).toContainEqual({ reason: 'Held Opponent to 10 Pts (Win)', points: 2 });
+  });
+
+  it('should not award D/ST hold points when allowing exactly 10 points in a loss', () => {
+    const exactlyTenLossSummary = makeGameSummary('exactly-ten-loss', [
+      { id: '12', score: '7', winner: false },
+      { id: '7', score: '10', winner: true },
+    ]);
+
+    const result = ScoringEngine.calculatePlayerScore('12', exactlyTenLossSummary, 'D/ST');
+
+    expect(result.totalPoints).toBe(0);
+    expect(result.details).toEqual([]);
   });
 
   it('should return scheduled game status and opponent when boxscore rows are not available yet', () => {

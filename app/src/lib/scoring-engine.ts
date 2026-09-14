@@ -375,9 +375,9 @@ export class ScoringEngine {
     else if (isFinal && pointsAllowed < 10 && isWin) {
       details.push({ reason: 'Held Opponent < 10 Pts (Win)', points: scoringRules.defense.holdMinus10 });
     }
-    // 3. Hold opponent to exactly 10 (2 pts)
-    else if (isFinal && pointsAllowed === 10) {
-      details.push({ reason: 'Held Opponent to 10 Pts', points: scoringRules.defense.holdExactly10 });
+    // 3. Hold opponent to exactly 10 (2 pts, Win Only)
+    else if (isFinal && pointsAllowed === 10 && isWin) {
+      details.push({ reason: 'Held Opponent to 10 Pts (Win)', points: scoringRules.defense.holdExactly10 });
     }
 
     // 4. Defensive Actions from scoringPlays
