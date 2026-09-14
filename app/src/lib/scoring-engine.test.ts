@@ -179,6 +179,18 @@ describe('ScoringEngine', () => {
     expect(result.details).toContainEqual({ reason: 'Held Opponent < 10 Pts (Win)', points: 3 });
   });
 
+  it('should award D/ST points for holding an opponent to exactly 10 points', () => {
+    const exactlyTenSummary = makeGameSummary('exactly-ten', [
+      { id: '12', score: '24', winner: true },
+      { id: '7', score: '10', winner: false },
+    ]);
+
+    const result = ScoringEngine.calculatePlayerScore('12', exactlyTenSummary, 'D/ST');
+
+    expect(result.totalPoints).toBe(2);
+    expect(result.details).toContainEqual({ reason: 'Held Opponent to 10 Pts', points: 2 });
+  });
+
   it('should return scheduled game status and opponent when boxscore rows are not available yet', () => {
     const scheduledSummary: EspnSummary = {
       id: 'scheduled-game',

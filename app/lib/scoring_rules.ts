@@ -55,6 +55,7 @@ export const scoringRules = {
   defense: {
     safety: 3,
     holdMinus10: 3, // Win only
+    holdExactly10: 2,
     pat: 1,
     td: 3.5,
     shutOut: 4,
