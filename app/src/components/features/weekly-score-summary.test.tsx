@@ -40,7 +40,7 @@ describe('WeeklyScoreSummary', () => {
 
   it('shows the combined total and expands a concise attribution', () => {
     render(
-      <WeeklyScoreSummary season={2026} seasonType={2} week={4} sections={sections} />,
+      <WeeklyScoreSummary week={4} sections={sections} />,
     );
 
     const toggle = screen.getByRole('button', { name: /week 4 total/i });
@@ -57,9 +57,9 @@ describe('WeeklyScoreSummary', () => {
     expect(screen.getByText('TB @ CIN — Over 40')).toBeInTheDocument();
   });
 
-  it('copies the selected week, section totals, attribution, and grand total', async () => {
+  it('copies a concise list of score attribution and the grand total', async () => {
     render(
-      <WeeklyScoreSummary season={2026} seasonType={2} week={4} sections={sections} />,
+      <WeeklyScoreSummary week={4} sections={sections} />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /week 4 total/i }));
@@ -67,17 +67,35 @@ describe('WeeklyScoreSummary', () => {
 
     await waitFor(() => expect(writeText).toHaveBeenCalledOnce());
     expect(writeText).toHaveBeenCalledWith(
-      "KJ's FFL Scores — 2026 Regular Season, Week 4\n\n" +
-      'Starting Lineup — 10.50 pts\n' +
       'Matthew Stafford — 6.50 pts\n' +
       'Breece Hall — 4.00 pts\n' +
-      'Zero Point Starter — 0.00 pts\n\n' +
-      'Upset Special — 4.00 pts\n' +
-      'TB +3.5 — 4.00 pts\n\n' +
-      'Over / Under — 2.00 pts\n' +
+      'Zero Point Starter — 0.00 pts\n' +
+      'TB +3.5 — 4.00 pts\n' +
       'TB @ CIN — Over 40 — 2.00 pts\n\n' +
       'Week Total — 16.50 pts',
     );
     expect(await screen.findByText('Score report copied')).toBeInTheDocument();
+  });
+
+  it('omits unset pick rows from the copied report', async () => {
+    const sectionsWithUnsetPicks = sections.map((section) => (
+      section.id === 'starting-lineup'
+        ? section
+        : { ...section, points: 0, lines: [{ ...section.lines[0], label: 'No pick', points: 0 }] }
+    ));
+    render(
+      <WeeklyScoreSummary week={4} sections={sectionsWithUnsetPicks} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /week 4 total/i }));
+    fireEvent.click(screen.getByRole('button', { name: /copy scores/i }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledOnce());
+    expect(writeText).toHaveBeenCalledWith(
+      'Matthew Stafford — 6.50 pts\n' +
+      'Breece Hall — 4.00 pts\n' +
+      'Zero Point Starter — 0.00 pts\n\n' +
+      'Week Total — 10.50 pts',
+    );
   });
 });

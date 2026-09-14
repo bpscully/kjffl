@@ -282,8 +282,6 @@ export default function Home() {
         </div>
 
         <WeeklyScoreSummary
-          season={season}
-          seasonType={seasonType}
           week={week}
           sections={weeklyScoreSections}
         />

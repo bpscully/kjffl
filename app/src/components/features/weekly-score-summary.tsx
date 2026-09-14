@@ -19,8 +19,6 @@ export interface WeeklyScoreSection {
 }
 
 interface WeeklyScoreSummaryProps {
-  season: number;
-  seasonType: number;
   week: number;
   sections: WeeklyScoreSection[];
 }
@@ -29,28 +27,19 @@ function formatPoints(points: number) {
   return `${points.toFixed(2)} pts`;
 }
 
-function seasonTypeLabel(seasonType: number) {
-  return seasonType === 3 ? 'Postseason' : 'Regular Season';
-}
-
-export function WeeklyScoreSummary({ season, seasonType, week, sections }: WeeklyScoreSummaryProps) {
+export function WeeklyScoreSummary({ week, sections }: WeeklyScoreSummaryProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const total = sections.reduce((sum, section) => sum + section.points, 0);
   const panelId = 'weekly-score-breakdown';
 
   const report = useMemo(() => {
-    const lines = [`KJ's FFL Scores — ${season} ${seasonTypeLabel(seasonType)}, Week ${week}`, ''];
-
-    sections.forEach((section, index) => {
-      lines.push(`${section.label} — ${formatPoints(section.points)}`);
-      section.lines.forEach((line) => lines.push(`${line.label} — ${formatPoints(line.points)}`));
-      if (index < sections.length - 1) lines.push('');
-    });
-
+    const lines = sections.flatMap((section) => section.lines)
+      .filter((line) => line.label !== 'No pick')
+      .map((line) => `${line.label} — ${formatPoints(line.points)}`);
     lines.push('', `Week Total — ${formatPoints(total)}`);
     return lines.join('\n');
-  }, [season, seasonType, sections, total, week]);
+  }, [sections, total]);
 
   const copyReport = async () => {
     try {
