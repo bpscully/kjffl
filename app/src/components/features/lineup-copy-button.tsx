@@ -143,12 +143,15 @@ export function LineupCopyButton({
       <Button
         type="button"
         variant="outline"
-        size="sm"
+        size="icon-sm"
+        className="gap-1.5 sm:w-auto sm:px-2.5"
         disabled={!message.canCopy}
         onClick={copyLineup}
       >
         {copyStatus === 'copied' ? <Check /> : <Clipboard />}
-        {copyStatus === 'copied' ? 'Copied' : 'Copy lineup'}
+        <span className="hidden sm:inline">
+          {copyStatus === 'copied' ? 'Copied' : 'Copy lineup'}
+        </span>
       </Button>
     </div>
   );

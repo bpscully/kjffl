@@ -339,7 +339,7 @@ export default function Home() {
                 overUnderPick={overUnderPick}
                 matchups={matchups}
               />
-              <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-full">
+              <span className="hidden text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-full sm:inline-flex">
                 {starters.length}
               </span>
             </div>
