@@ -114,6 +114,54 @@ describe('ScoringEngine', () => {
     expect(result.details).toContainEqual({ reason: 'Receiving TD (25 yds)', points: 3 });
   });
 
+  it.each([
+    [29, 1],
+    [30, 1.5],
+    [35, 1.5],
+    [36, 2],
+    [40, 2],
+    [41, 2.5],
+    [45, 2.5],
+    [46, 3],
+    [50, 3],
+    [51, 3.5],
+    [55, 3.5],
+    [56, 4],
+    [60, 4],
+    [61, 5],
+    [65, 5],
+    [66, 6],
+  ])('should score a %i-yard field goal as %s points', (yards, points) => {
+    const kickerSummary = makeGameSummary(`field-goal-${yards}`, [
+      { id: '12', score: '3', winner: true },
+      { id: '7', score: '0', winner: false },
+    ]);
+    kickerSummary.scoringPlays = [{
+      id: `fg-${yards}`,
+      type: { id: '59', text: 'Field Goal Good', abbreviation: 'FG' },
+      text: `Test Kicker ${yards} Yd Field Goal`,
+      awayScore: 0,
+      homeScore: 3,
+      team: { id: '12' },
+    }];
+    kickerSummary.boxscore.players = [{
+      team: { id: '12', abbreviation: 'KC' },
+      statistics: [{
+        name: 'kicking',
+        labels: ['FG', 'XP'],
+        athletes: [{
+          athlete: { id: '200', displayName: 'Test Kicker' },
+          stats: ['1/1', '0/0'],
+        }],
+      }],
+    }];
+
+    const result = ScoringEngine.calculatePlayerScore('200', kickerSummary, 'K');
+
+    expect(result.totalPoints).toBe(points);
+    expect(result.details).toEqual([{ reason: `FG (${yards} yds)`, points }]);
+  });
+
   it('should apply Puka Nacua\'s flex bonus from 2025 Week 2', () => {
     const pukaWeekTwoSummary: EspnSummary = {
       id: '401772724',
