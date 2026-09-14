@@ -8,6 +8,7 @@ import { PlayerCard } from '@/components/features/player-card';
 import { UpsetSpecialPicker } from '@/components/features/upset-special-picker';
 import { OverUnderPicker } from '@/components/features/over-under-picker';
 import { WeeklyScoreSection, WeeklyScoreSummary } from '@/components/features/weekly-score-summary';
+import { LineupCopyButton } from '@/components/features/lineup-copy-button';
 import { PlayerScoreResult } from '@/lib/scoring-engine';
 import { useUpsetSpecialPick } from '@/hooks/use-upset-special-pick';
 import { useUpsetSpecialScore } from '@/hooks/use-upset-special-score';
@@ -324,14 +325,24 @@ export default function Home() {
 
       <div className="space-y-10">
         <section>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <div className="flex items-center gap-3">
                 <h2 className="text-xl font-bold">Starting Lineup</h2>
                 <div className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold border border-primary/20">
                     {starterTotal.toFixed(2)} <span className="text-[10px] uppercase opacity-70 ml-0.5">pts</span>
                 </div>
             </div>
-            <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-full">{starters.length}</span>
+            <div className="flex items-center gap-2">
+              <LineupCopyButton
+                starters={starters}
+                upsetPick={upsetPick}
+                overUnderPick={overUnderPick}
+                matchups={matchups}
+              />
+              <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                {starters.length}
+              </span>
+            </div>
           </div>
           
           {starters.length === 0 ? (
