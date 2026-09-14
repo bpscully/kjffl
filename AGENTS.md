@@ -8,7 +8,7 @@ The active application lives in `app/` and uses Next.js App Router, React, TypeS
 
 ## Current product behavior
 
-- The roster is split into Starting Lineup and Bench and persists in browser `localStorage`.
+- Complete roster and Start/Sit snapshots persist by season, season type, and week in browser `localStorage`. An unset week inherits the latest earlier lineup within the same season and season type.
 - Player search uses a server-cached ESPN player index and includes individual players, kickers, and D/ST entries.
 - Player cards show custom scores, opponent, Pacific game date/time or status, scoring details, and recent player updates.
 - Player updates come from ESPN's league injuries/status feed. A true injury designation changes the card icon; other recent notes remain useful updates. Status-only comments are filtered, and stale notes older than one month are excluded.

@@ -8,7 +8,7 @@ export interface Player {
 
 export interface RosterPlayer extends Player {
   addedAt: number; // Timestamp for sorting or uniqueness
-  isStarter?: boolean; // For future use
+  isStarter?: boolean; // Start/Sit state stored in each weekly roster snapshot
 }
 
 export interface PlayerNewsItem {

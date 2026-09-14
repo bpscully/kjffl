@@ -20,13 +20,17 @@ import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Home() {
-  const { roster, addPlayer, removePlayer, clearRoster, toggleStarter, isLoaded } = useRoster();
-  const { updates, isLoadingUpdates, fetchUpdates } = usePlayerUpdates(roster, isLoaded);
   const defaultNflWeek = getDefaultNflWeek();
   const seasonOptions = getSeasonOptions();
   const [season, setSeason] = useState(defaultNflWeek.season);
   const [week, setWeek] = useState(defaultNflWeek.week);
   const [seasonType, setSeasonType] = useState(2); // 2 = Regular, 3 = Post
+  const { roster, addPlayer, removePlayer, clearRoster, toggleStarter, isLoaded } = useRoster(
+    season,
+    seasonType,
+    week,
+  );
+  const { updates, isLoadingUpdates, fetchUpdates } = usePlayerUpdates(roster, isLoaded);
   const {
     matchups,
     error: matchupError,
@@ -95,7 +99,8 @@ export default function Home() {
   }, [fetchScores, isLoaded, roster]);
 
   const confirmClearRoster = () => {
-    if (confirm('Clear entire roster?')) {
+    const seasonTypeLabel = seasonType === 3 ? 'Postseason' : 'Regular Season';
+    if (confirm(`Clear roster for ${season} ${seasonTypeLabel} Week ${week}?`)) {
       clearRoster();
       setScores({});
     }

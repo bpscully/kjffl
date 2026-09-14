@@ -1,40 +1,136 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Player, RosterPlayer } from '@/types';
 
-const STORAGE_KEY = 'kjffl-roster';
+const LEGACY_STORAGE_KEY = 'kjffl-roster';
+const STORAGE_KEY = 'kjffl-weekly-rosters';
 
-export function useRoster() {
-  const [roster, setRoster] = useState<RosterPlayer[]>([]);
+type RosterSnapshotMap = Record<string, RosterPlayer[]>;
+
+function getSnapshotKey(season: number, seasonType: number, week: number) {
+  return `${season}-${seasonType}-${week}`;
+}
+
+function hasSnapshot(snapshots: RosterSnapshotMap, key: string) {
+  return Object.prototype.hasOwnProperty.call(snapshots, key);
+}
+
+function resolveRoster(
+  snapshots: RosterSnapshotMap,
+  season: number,
+  seasonType: number,
+  week: number,
+): RosterPlayer[] {
+  const currentKey = getSnapshotKey(season, seasonType, week);
+  if (hasSnapshot(snapshots, currentKey)) {
+    return snapshots[currentKey];
+  }
+
+  let latestPriorWeek = -1;
+  let latestPriorRoster: RosterPlayer[] = [];
+
+  for (const [key, snapshot] of Object.entries(snapshots)) {
+    const [snapshotSeason, snapshotSeasonType, snapshotWeek] = key.split('-').map(Number);
+    if (
+      snapshotSeason === season
+      && snapshotSeasonType === seasonType
+      && snapshotWeek < week
+      && snapshotWeek > latestPriorWeek
+    ) {
+      latestPriorWeek = snapshotWeek;
+      latestPriorRoster = snapshot;
+    }
+  }
+
+  return latestPriorRoster.map((player) => ({ ...player }));
+}
+
+function mergePlayerMetadata(roster: RosterPlayer[], currentPlayers: Map<string, Player>) {
+  return roster.map((rosterPlayer) => {
+    const currentPlayer = currentPlayers.get(rosterPlayer.id);
+    if (!currentPlayer) return rosterPlayer;
+
+    return {
+      ...rosterPlayer,
+      name: currentPlayer.name,
+      pos: currentPlayer.pos,
+      team: currentPlayer.team,
+      teamId: currentPlayer.teamId,
+    };
+  });
+}
+
+export function useRoster(season: number, seasonType: number, week: number) {
+  const snapshotKey = useMemo(
+    () => getSnapshotKey(season, seasonType, week),
+    [season, seasonType, week],
+  );
+  const [initialSnapshotKey] = useState(() => snapshotKey);
+  const [snapshots, setSnapshots] = useState<RosterSnapshotMap>({});
+  const [draftRosters, setDraftRosters] = useState<RosterSnapshotMap>({});
   const [isLoaded, setIsLoaded] = useState(false);
-  const [hasRefreshedRoster, setHasRefreshedRoster] = useState(false);
+  const hasRefreshedRoster = useRef(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const loadedRoster: RosterPlayer[] = JSON.parse(stored);
-        setRoster(loadedRoster);
-      } catch (e) {
-        console.error('Failed to parse roster from local storage', e);
+    const timeoutId = window.setTimeout(() => {
+      let loadedSnapshots: RosterSnapshotMap | null = null;
+      const storedSnapshots = localStorage.getItem(STORAGE_KEY);
+
+      if (storedSnapshots) {
+        try {
+          loadedSnapshots = JSON.parse(storedSnapshots);
+        } catch (error) {
+          console.error('Failed to parse weekly rosters from local storage', error);
+        }
       }
-    }
-    setIsLoaded(true);
-  }, []);
+
+      if (!loadedSnapshots) {
+        const legacyRoster = localStorage.getItem(LEGACY_STORAGE_KEY);
+        if (legacyRoster) {
+          try {
+            const parsedLegacyRoster: RosterPlayer[] = JSON.parse(legacyRoster);
+            loadedSnapshots = { [initialSnapshotKey]: parsedLegacyRoster };
+          } catch (error) {
+            console.error('Failed to parse legacy roster from local storage', error);
+          }
+        }
+      }
+
+      setSnapshots(loadedSnapshots || {});
+      setIsLoaded(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [initialSnapshotKey]);
 
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(roster));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshots));
     }
-  }, [roster, isLoaded]);
+  }, [isLoaded, snapshots]);
+
+  const roster = useMemo(() => {
+    if (hasSnapshot(snapshots, snapshotKey)) {
+      return snapshots[snapshotKey];
+    }
+    if (hasSnapshot(draftRosters, snapshotKey)) {
+      return draftRosters[snapshotKey];
+    }
+    return resolveRoster(snapshots, season, seasonType, week);
+  }, [draftRosters, season, seasonType, snapshotKey, snapshots, week]);
 
   useEffect(() => {
-    if (!isLoaded || hasRefreshedRoster || roster.length === 0) return;
+    if (!isLoaded || hasRefreshedRoster.current || roster.length === 0) return;
+
+    hasRefreshedRoster.current = true;
+    const keyAtRequest = snapshotKey;
+    const rosterAtRequest = roster;
+    const snapshotWasSaved = hasSnapshot(snapshots, keyAtRequest);
 
     const refreshRosterMetadata = async () => {
       try {
-        const ids = roster.map((player) => player.id).join(',');
+        const ids = rosterAtRequest.map((player) => player.id).join(',');
         const response = await fetch(`/api/players?ids=${encodeURIComponent(ids)}`);
         if (!response.ok) return;
 
@@ -43,54 +139,74 @@ export function useRoster() {
           (data.results || []).map((player: Player) => [player.id, player]),
         );
 
-        setRoster((currentRoster) => currentRoster.map((rosterPlayer) => {
-          const currentPlayer = currentPlayers.get(rosterPlayer.id);
-          if (!currentPlayer) return rosterPlayer;
-
-          return {
-            ...rosterPlayer,
-            name: currentPlayer.name,
-            pos: currentPlayer.pos,
-            team: currentPlayer.team,
-            teamId: currentPlayer.teamId,
-          };
-        }));
+        if (snapshotWasSaved) {
+          setSnapshots((current) => {
+            if (!hasSnapshot(current, keyAtRequest)) return current;
+            return {
+              ...current,
+              [keyAtRequest]: mergePlayerMetadata(current[keyAtRequest], currentPlayers),
+            };
+          });
+        } else {
+          setDraftRosters((current) => ({
+            ...current,
+            [keyAtRequest]: mergePlayerMetadata(
+              current[keyAtRequest] || rosterAtRequest,
+              currentPlayers,
+            ),
+          }));
+        }
       } catch (error) {
         console.error('Failed to refresh roster player metadata', error);
-      } finally {
-        setHasRefreshedRoster(true);
       }
     };
 
-    refreshRosterMetadata();
-  }, [hasRefreshedRoster, isLoaded, roster]);
+    void refreshRosterMetadata();
+  }, [isLoaded, roster, snapshotKey, snapshots]);
+
+  const updateCurrentRoster = (update: (current: RosterPlayer[]) => RosterPlayer[]) => {
+    setSnapshots((currentSnapshots) => {
+      const currentRoster = hasSnapshot(currentSnapshots, snapshotKey)
+        ? currentSnapshots[snapshotKey]
+        : draftRosters[snapshotKey] || resolveRoster(currentSnapshots, season, seasonType, week);
+
+      return {
+        ...currentSnapshots,
+        [snapshotKey]: update(currentRoster),
+      };
+    });
+
+    setDraftRosters((current) => {
+      if (!hasSnapshot(current, snapshotKey)) return current;
+      const next = { ...current };
+      delete next[snapshotKey];
+      return next;
+    });
+  };
 
   const addPlayer = (player: Player) => {
-    if (roster.some((p) => p.id === player.id)) {
-      return;
-    }
+    if (roster.some((rosterPlayer) => rosterPlayer.id === player.id)) return;
+
     const newPlayer: RosterPlayer = {
       ...player,
       addedAt: Date.now(),
-      isStarter: true,
+      isStarter: false,
     };
-    setRoster((prev) => [...prev, newPlayer]);
+    updateCurrentRoster((current) => [...current, newPlayer]);
   };
 
   const removePlayer = (playerId: string) => {
-    setRoster((prev) => prev.filter((p) => p.id !== playerId));
+    updateCurrentRoster((current) => current.filter((player) => player.id !== playerId));
   };
 
   const clearRoster = () => {
-    setRoster([]);
+    updateCurrentRoster(() => []);
   };
 
   const toggleStarter = (playerId: string) => {
-    setRoster((prev) =>
-      prev.map((p) =>
-        p.id === playerId ? { ...p, isStarter: !p.isStarter } : p
-      )
-    );
+    updateCurrentRoster((current) => current.map((player) => (
+      player.id === playerId ? { ...player, isStarter: !player.isStarter } : player
+    )));
   };
 
   return {
