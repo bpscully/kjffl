@@ -7,8 +7,6 @@ import { PlayerUpdateResult, RosterPlayer } from '@/types';
 import { cn } from '@/lib/utils';
 import { formatPacificDateTime } from '@/lib/date-time';
 import {
-  ArrowDownWideNarrow,
-  ArrowUpWideNarrow,
   BriefcaseMedical,
   ChevronDown,
   ChevronUp,
@@ -77,18 +75,24 @@ export function PlayerCard({
         "w-full relative overflow-hidden group hover:shadow-md transition-all",
         isBench ? "bg-muted/40 border-dashed" : "bg-card"
     )}>
-      <div className="absolute top-1 right-1 flex gap-1 z-10 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-        <Button 
-            variant="secondary" 
-            size="icon" 
-            className="h-7 w-7 sm:h-6 sm:w-6 shadow-sm border" 
-            title={player.isStarter ? "Move to Bench" : "Move to Starters"}
+      <div className="absolute top-1 right-1 z-10 flex gap-1">
+        <Button
+            variant="secondary"
+            size="sm"
+            className="h-7 gap-1 px-2 text-[10px] font-semibold shadow-sm border sm:h-6"
+            title={player.isStarter ? "Move to Bench" : "Move to Starting Lineup"}
+            aria-label={player.isStarter
+              ? `Move ${player.name} to Bench`
+              : `Move ${player.name} to Starting Lineup`}
             onClick={(e) => {
                 e.stopPropagation();
                 onToggleStarter(player.id);
             }}
         >
-            {player.isStarter ? <ArrowDownWideNarrow className="h-3.5 w-3.5 sm:h-3 sm:w-3" /> : <ArrowUpWideNarrow className="h-3.5 w-3.5 sm:h-3 sm:w-3" />}
+            {player.isStarter
+              ? <ChevronDown className="h-3 w-3" />
+              : <ChevronUp className="h-3 w-3" />}
+            <span>{player.isStarter ? 'Sit' : 'Start'}</span>
         </Button>
         <Button 
             variant="secondary" 
@@ -201,33 +205,33 @@ export function PlayerCard({
             {/* Score */}
             <div 
                 className={cn(
-                    "flex flex-col items-end cursor-pointer select-none min-w-[60px]",
+                    "flex min-w-[60px] flex-col items-end cursor-pointer select-none",
                     hasDetails && "hover:opacity-70"
                 )}
                 onClick={() => hasDetails && toggleSection('score')}
             >
-            {loading ? (
-                <div className="h-6 w-10 bg-muted animate-pulse rounded" />
-            ) : (
-                <>
-                    <div className="flex items-center gap-1">
-                        <span className={cn(
-                            "text-xl font-bold font-mono",
-                            isScheduled && "text-yellow-600 dark:text-yellow-400",
-                            isLive && "text-green-600",
-                            !isScheduled && !isLive && isFinal && "text-foreground",
-                            !isScheduled && !isLive && !isFinal && "text-muted-foreground",
-                            score && score > 0 && !isScheduled && !isLive && (isBench ? "text-muted-foreground" : "text-primary")
-                        )}>
-                            {score !== undefined ? score.toFixed(2) : '--'}
-                        </span>
-                        {hasDetails && (
-                            expandedSection === 'score' ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                        )}
-                    </div>
-                    <span className="text-[10px] uppercase text-muted-foreground">Pts</span>
-                </>
-            )}
+                {loading ? (
+                    <div className="h-6 w-10 bg-muted animate-pulse rounded" />
+                ) : (
+                    <>
+                        <div className="flex items-center gap-1">
+                            <span className={cn(
+                                "text-xl font-bold font-mono",
+                                isScheduled && "text-yellow-600 dark:text-yellow-400",
+                                isLive && "text-green-600",
+                                !isScheduled && !isLive && isFinal && "text-foreground",
+                                !isScheduled && !isLive && !isFinal && "text-muted-foreground",
+                                score && score > 0 && !isScheduled && !isLive && (isBench ? "text-muted-foreground" : "text-primary")
+                            )}>
+                                {score !== undefined ? score.toFixed(2) : '--'}
+                            </span>
+                            {hasDetails && (
+                                expandedSection === 'score' ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                            )}
+                        </div>
+                        <span className="text-[10px] uppercase text-muted-foreground">Pts</span>
+                    </>
+                )}
             </div>
         </div>
 

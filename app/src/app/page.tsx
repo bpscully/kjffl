@@ -307,8 +307,7 @@ export default function Home() {
           onPickLabelChange={setOverUnderPickLabel}
         />
 
-        {bench.length > 0 && (
-            <section>
+        <section>
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                     <h2 className="text-xl font-bold text-muted-foreground">Bench</h2>
@@ -318,9 +317,14 @@ export default function Home() {
                 </div>
                 <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-full">{bench.length}</span>
             </div>
-            <div className="grid gap-3 opacity-80 hover:opacity-100 transition-opacity">
+            {bench.length === 0 ? (
+              <div className="text-sm text-muted-foreground italic py-8 px-4 border-2 border-dashed rounded-xl text-center bg-muted/20">
+                No players on the bench. Use the Sit button on a starter to move them here.
+              </div>
+            ) : (
+              <div className="grid gap-3 opacity-80 hover:opacity-100 transition-opacity">
                 {bench.map(player => (
-                <PlayerCard 
+                  <PlayerCard 
                     key={player.id} 
                     player={player} 
                     onRemove={removePlayer} 
@@ -332,11 +336,11 @@ export default function Home() {
                     opponentAbbr={scores[player.id]?.opponentAbbr}
                     loading={isLoadingScores}
                     updates={updates[player.id]}
-                />
+                  />
                 ))}
-            </div>
-            </section>
-        )}
+              </div>
+            )}
+        </section>
       </div>
     </main>
   );

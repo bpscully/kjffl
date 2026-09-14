@@ -32,8 +32,44 @@ const updates: PlayerUpdateResult = {
   },
 };
 
-describe('PlayerCard updates', () => {
+describe('PlayerCard', () => {
   afterEach(() => vi.useRealTimers());
+
+  it('shows an always-visible Sit action for a starter', () => {
+    const onToggleStarter = vi.fn();
+
+    render(
+      <PlayerCard
+        player={player}
+        onRemove={vi.fn()}
+        onToggleStarter={onToggleStarter}
+      />,
+    );
+
+    const benchButton = screen.getByRole('button', { name: 'Move Example Player to Bench' });
+    expect(benchButton).toHaveTextContent('Sit');
+
+    fireEvent.click(benchButton);
+    expect(onToggleStarter).toHaveBeenCalledWith(player.id);
+  });
+
+  it('shows an always-visible Start action for a bench player', () => {
+    const onToggleStarter = vi.fn();
+
+    render(
+      <PlayerCard
+        player={{ ...player, isStarter: false }}
+        onRemove={vi.fn()}
+        onToggleStarter={onToggleStarter}
+      />,
+    );
+
+    const startButton = screen.getByRole('button', { name: 'Move Example Player to Starting Lineup' });
+    expect(startButton).toHaveTextContent('Start');
+
+    fireEvent.click(startButton);
+    expect(onToggleStarter).toHaveBeenCalledWith(player.id);
+  });
 
   it('shows recent in-app news and keeps news and scoring expansions exclusive', () => {
     vi.useFakeTimers();
