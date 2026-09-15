@@ -6,9 +6,10 @@ describe('nfl week defaults', () => {
     expect(getDefaultNflWeek(new Date(2026, 7, 8))).toEqual({ season: 2026, week: 1 });
   });
 
-  it('starts week 1 on the Thursday after Labor Day', () => {
-    expect(getDefaultNflWeek(new Date(2026, 8, 10))).toEqual({ season: 2026, week: 1 });
-    expect(getDefaultNflWeek(new Date(2026, 8, 17))).toEqual({ season: 2026, week: 2 });
+  it('advances weeks on Tuesdays after Labor Day', () => {
+    expect(getDefaultNflWeek(new Date(2026, 8, 8))).toEqual({ season: 2026, week: 1 });
+    expect(getDefaultNflWeek(new Date(2026, 8, 14))).toEqual({ season: 2026, week: 1 });
+    expect(getDefaultNflWeek(new Date(2026, 8, 15))).toEqual({ season: 2026, week: 2 });
   });
 
   it('uses the previous season in January and February', () => {

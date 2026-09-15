@@ -14,17 +14,17 @@ export function getDefaultNflWeek(date = new Date()): DefaultNflWeek {
   const year = date.getFullYear();
   const month = date.getMonth();
   const season = month < 3 ? year - 1 : year;
-  const weekOneStart = getThursdayAfterLaborDay(season);
+  const weekOneStart = getTuesdayAfterLaborDay(season);
   const daysSinceWeekOne = Math.floor((startOfDay(date).getTime() - weekOneStart.getTime()) / 86400000);
   const week = Math.min(REGULAR_SEASON_WEEKS, Math.max(1, Math.floor(daysSinceWeekOne / 7) + 1));
 
   return { season, week };
 }
 
-function getThursdayAfterLaborDay(year: number): Date {
+function getTuesdayAfterLaborDay(year: number): Date {
   const date = new Date(year, 8, 1);
   const daysUntilMonday = (1 - date.getDay() + 7) % 7;
-  date.setDate(date.getDate() + daysUntilMonday + 3);
+  date.setDate(date.getDate() + daysUntilMonday + 1);
   return startOfDay(date);
 }
 
